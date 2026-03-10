@@ -1,6 +1,34 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { VideoSource } from '../../../types'
-import { buildYouTubeEmbedUrl, extractYouTubeId } from '../../../utils/url'
+import { extractYouTubeId } from '../../../utils/url'
+import { usePlayerStore } from '../store'
+import { ABRepeatControls } from './ABRepeatControls'
+
+// YouTube IFrame API の最小型宣言
+declare global {
+  interface Window {
+    YT: {
+      Player: new (
+        el: HTMLElement,
+        opts: {
+          videoId: string
+          playerVars?: Record<string, string | number>
+          events?: {
+            onReady?: () => void
+            onStateChange?: (e: { data: number }) => void
+          }
+        }
+      ) => YTPlayer
+    }
+    onYouTubeIframeAPIReady: (() => void) | undefined
+  }
+}
+
+interface YTPlayer {
+  getCurrentTime(): number
+  seekTo(seconds: number, allowSeekAhead: boolean): void
+  destroy(): void
+}
 
 interface YouTubePlayerProps {
   source: VideoSource
@@ -8,59 +36,108 @@ interface YouTubePlayerProps {
 }
 
 /**
- * YouTube 埋め込みプレイヤー。
+ * YouTube 埋め込みプレイヤー（YT.Player API 使用）。
  *
- * enablejsapi=1 + postMessage で動画終了を検知する。
- * YouTube IFrame API は外部スクリプト不要。
- * 再生状態コード: 0 = 終了, 1 = 再生中, 2 = 一時停止
+ * YT.Player API を使い A-B リピートに対応する。
+ * setInterval 100ms でポーリングし、currentTime >= abB なら abA へシーク。
+ * containerRef 内に placeholder div を動的に生成し、YT.Player に渡す。
  */
 export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   const videoId = extractYouTubeId(source.src)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const playerRef = useRef<YTPlayer | null>(null)
+  // onEnded が毎レンダーで変わっても setInterval 内から最新版を参照できるよう ref に保持
+  const onEndedRef = useRef(onEnded)
+  onEndedRef.current = onEnded
 
+  const { abA, abB, setAbA, setAbB, clearAB } = usePlayerStore()
+
+  // YT.Player を初期化する。container 内に placeholder div を作り直してから渡す
+  const initPlayer = useCallback(() => {
+    if (!containerRef.current || !videoId) return
+    playerRef.current?.destroy()
+    containerRef.current.innerHTML = ''
+    const placeholder = document.createElement('div')
+    containerRef.current.appendChild(placeholder)
+    playerRef.current = new window.YT.Player(placeholder, {
+      videoId,
+      playerVars: { rel: 0, modestbranding: 1 },
+      events: {
+        onStateChange: (e: { data: number }) => {
+          if (e.data === 0) onEndedRef.current?.()
+        },
+      },
+    })
+  }, [videoId])
+
+  // YT API スクリプト読み込みと Player 初期化
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.source !== iframeRef.current?.contentWindow) return
-      try {
-        const data: unknown = typeof e.data === 'string' ? JSON.parse(e.data) : e.data
-        if (
-          typeof data === 'object' &&
-          data !== null &&
-          'event' in data &&
-          (data as { event: unknown }).event === 'onStateChange' &&
-          'info' in data &&
-          (data as { info: unknown }).info === 0
-        ) {
-          onEnded?.()
-        }
-      } catch {
-        // JSON.parse 失敗は無視
+    if (!videoId) return
+
+    if (window.YT?.Player) {
+      // API はすでに読み込み済み
+      initPlayer()
+    } else {
+      // スクリプト未ロード → 挿入（複数コンポーネントで重複挿入を防ぐ）
+      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script')
+        tag.src = 'https://www.youtube.com/iframe_api'
+        document.head.appendChild(tag)
       }
+      window.onYouTubeIframeAPIReady = initPlayer
     }
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [onEnded])
+
+    return () => {
+      playerRef.current?.destroy()
+      playerRef.current = null
+    }
+  }, [videoId, initPlayer])
+
+  // A-B リピート: 100ms ポーリングで currentTime >= abB になったら abA へシーク
+  useEffect(() => {
+    const id = setInterval(() => {
+      const { abA: a, abB: b } = usePlayerStore.getState()
+      if (a === null || b === null || !playerRef.current) return
+      if (playerRef.current.getCurrentTime() >= b) {
+        playerRef.current.seekTo(a, true)
+      }
+    }, 100)
+    return () => clearInterval(id)
+  }, [])
+
+  const handleSetA = useCallback(() => {
+    setAbA(playerRef.current?.getCurrentTime() ?? 0)
+  }, [setAbA])
+
+  const handleSetB = useCallback(() => {
+    const { abA: currentAbA } = usePlayerStore.getState()
+    const t = playerRef.current?.getCurrentTime() ?? 0
+    if (currentAbA !== null && t > currentAbA) setAbB(t)
+  }, [setAbB])
 
   if (!videoId) {
     return (
-      <div className="flex w-full items-center justify-center bg-black text-sm text-neutral-500" style={{ aspectRatio: '16/9' }}>
+      <div
+        className="flex w-full items-center justify-center bg-black text-sm text-neutral-500"
+        style={{ aspectRatio: '16/9' }}
+      >
         無効な YouTube URL です
       </div>
     )
   }
 
-  const embedUrl = buildYouTubeEmbedUrl(videoId)
-
   return (
     <div className="flex flex-col bg-black">
       <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-        <iframe
-          ref={iframeRef}
-          src={embedUrl}
-          className="h-full w-full"
-          title={source.displayName ?? 'YouTube Video'}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
+        <div ref={containerRef} className="h-full w-full" />
+      </div>
+      <div className="bg-neutral-950">
+        <ABRepeatControls
+          abA={abA}
+          abB={abB}
+          onSetA={handleSetA}
+          onSetB={handleSetB}
+          onClear={clearAB}
         />
       </div>
     </div>
