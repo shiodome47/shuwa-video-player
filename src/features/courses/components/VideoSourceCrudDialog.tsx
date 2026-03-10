@@ -5,7 +5,7 @@ import { Dialog } from '../../../components/ui/Dialog'
 import { FormField } from '../../../components/ui/FormField'
 import { Input } from '../../../components/ui/Input'
 import type { VideoSource, VideoSourceType } from '../../../types'
-import { isSafeUrl, isYouTubeUrl } from '../../../utils/url'
+import { isSafeUrl, isYouTubeUrl, normalizeDropboxUrl } from '../../../utils/url'
 import { useCourseStore } from '../store'
 import { saveFileHandle } from '../../../storage/fileHandleStore'
 import { cn } from '../../../utils/cn'
@@ -28,7 +28,7 @@ const TYPE_OPTIONS: { value: VideoSourceType; label: string; description: string
   {
     value: 'remote',
     label: '外部 URL',
-    description: 'mp4 等のダイレクトリンクを入力。共有・複数端末向き',
+    description: 'mp4 等のダイレクトリンクを入力。Dropbox のリンクは自動で直接再生向け URL に補正します',
   },
   {
     value: 'local',
@@ -146,11 +146,13 @@ export function VideoSourceCrudDialog({
     if (!validate()) return
 
     setIsSubmitting(true)
+    // remote タイプは保存前に Dropbox URL を正規化する
+    const normalizedSrc = type === 'remote' ? normalizeDropboxUrl(src.trim()) : src.trim()
     try {
       if (isEdit) {
         await updateVideoSource(videoSource.id, {
           type,
-          src: src.trim(),
+          src: normalizedSrc,
           displayName: displayName.trim() || undefined,
         })
         // 編集時に新しいファイルを選び直した場合はハンドルを上書き保存
@@ -161,7 +163,7 @@ export function VideoSourceCrudDialog({
         const source = await addVideoSource({
           lessonId,
           type,
-          src: src.trim(),
+          src: normalizedSrc,
           displayName: displayName.trim() || undefined,
         })
         // local の場合はファイルハンドルをその場で保存して関連付けまで完了

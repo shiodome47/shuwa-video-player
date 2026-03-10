@@ -54,6 +54,25 @@ export function buildYouTubeEmbedUrl(videoId: string): string {
 }
 
 /**
+ * Dropbox 共有 URL を直接再生向けに正規化する。
+ * - `dl` パラメータを値に関係なく削除
+ * - `raw=1` を付与（すでにある場合も上書きで統一）
+ * - `rlkey`, `st` など他のクエリは保持
+ * - Dropbox 以外の URL はそのまま返す
+ */
+export function normalizeDropboxUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.hostname.endsWith('dropbox.com')) return url
+    parsed.searchParams.delete('dl')
+    parsed.searchParams.set('raw', '1')
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
+/**
  * URL からドメイン名を取得する（ResourceCard の表示用）。
  */
 export function getDomain(url: string): string {
