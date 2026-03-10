@@ -12,6 +12,7 @@ import { clearOnboarding } from '../components/OnboardingModal'
 import { clearLessonHint } from '../components/LessonHintBar'
 import { useUIStore, type Theme } from '../stores/ui'
 import { cn } from '../utils/cn'
+import { isSafeUrl, normalizeDropboxUrlForDownload } from '../utils/url'
 
 const LAST_BACKUP_KEY = 'shuwa-last-backup-at'
 
@@ -23,7 +24,7 @@ function saveLastBackupAt() {
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
 }
 
-type ImportPhase = 'idle' | 'preview' | 'importing' | 'done' | 'error'
+type ImportPhase = 'idle' | 'fetching' | 'preview' | 'importing' | 'done' | 'error'
 
 /**
  * 設定画面（Phase 5B）。
@@ -149,7 +150,22 @@ function ImportSection() {
   const [phase, setPhase] = useState<ImportPhase>('idle')
   const [preview, setPreview] = useState<ShuwaBackup | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [importMode, setImportMode] = useState<'file' | 'url'>('file')
+  const [urlInput, setUrlInput] = useState('')
   const navigate = useNavigate()
+
+  // JSON テキストをパースしてプレビューフェーズに進む（ファイル・URL 共通）
+  const processText = (text: string) => {
+    try {
+      const parsed = parseBackupJson(text)
+      setPreview(parsed)
+      setPhase('preview')
+      setErrorMsg('')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : '不明なエラー')
+      setPhase('error')
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -158,18 +174,42 @@ function ImportSection() {
     reader.onload = (ev) => {
       const text = ev.target?.result
       if (typeof text !== 'string') return
-      try {
-        const parsed = parseBackupJson(text)
-        setPreview(parsed)
-        setPhase('preview')
-        setErrorMsg('')
-      } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : '不明なエラー')
-        setPhase('error')
-      }
+      processText(text)
     }
     reader.readAsText(file)
     e.target.value = ''
+  }
+
+  const handleUrlFetch = async () => {
+    const raw = urlInput.trim()
+    if (!raw) {
+      setErrorMsg('URL を入力してください')
+      setPhase('error')
+      return
+    }
+    if (!isSafeUrl(raw)) {
+      setErrorMsg('有効な URL を入力してください（https://... または http://...）')
+      setPhase('error')
+      return
+    }
+    const normalized = normalizeDropboxUrlForDownload(raw)
+    setPhase('fetching')
+    try {
+      const res = await fetch(normalized)
+      if (!res.ok) {
+        throw new Error(`取得に失敗しました（HTTP ${res.status}）`)
+      }
+      const text = await res.text()
+      processText(text)
+    } catch (err) {
+      if (err instanceof TypeError) {
+        // fetch が投げる TypeError は CORS・ネットワークエラー
+        setErrorMsg('URL の取得に失敗しました。CORS 制限またはネットワークエラーの可能性があります。')
+      } else {
+        setErrorMsg(err instanceof Error ? err.message : '不明なエラー')
+      }
+      setPhase('error')
+    }
   }
 
   const handleImport = async () => {
@@ -207,21 +247,72 @@ function ImportSection() {
 
       {phase === 'idle' && (
         <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="sr-only"
-            onChange={handleFileChange}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
-          >
-            <Upload className="h-4 w-4" />
-            ファイルを選択
-          </button>
+          {/* インポート方法の切り替え */}
+          <div className="mt-3 flex gap-1">
+            {(['file', 'url'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setImportMode(mode)}
+                className={cn(
+                  'rounded px-3 py-1.5 text-xs font-medium transition-colors',
+                  importMode === mode
+                    ? 'bg-accent-700 text-white'
+                    : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200',
+                )}
+              >
+                {mode === 'file' ? 'ファイルから' : 'URLから'}
+              </button>
+            ))}
+          </div>
+
+          {/* ファイル選択 */}
+          {importMode === 'file' && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                onChange={handleFileChange}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-4 flex items-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                <Upload className="h-4 w-4" />
+                ファイルを選択
+              </button>
+            </>
+          )}
+
+          {/* URL 入力 */}
+          {importMode === 'url' && (
+            <div className="mt-3 space-y-2">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 outline-none focus:border-accent-600"
+              />
+              <p className="text-[11px] text-neutral-600">
+                JSON を直接取得できる URL を入力してください。Dropbox のリンクは自動で補正します。
+              </p>
+              <button
+                onClick={() => void handleUrlFetch()}
+                disabled={!urlInput.trim()}
+                className="flex items-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100 disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                取得してプレビュー
+              </button>
+            </div>
+          )}
         </>
+      )}
+
+      {phase === 'fetching' && (
+        <p className="mt-4 text-sm text-neutral-400">取得中…</p>
       )}
 
       {phase === 'preview' && preview && (

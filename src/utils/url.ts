@@ -54,6 +54,24 @@ export function buildYouTubeEmbedUrl(videoId: string): string {
 }
 
 /**
+ * Dropbox 共有 URL を JSON ダウンロード向けに正規化する。
+ * - `dl` パラメータを値に関係なく削除してから `dl=1` を付与
+ * - `rlkey`, `st` など他のクエリは保持
+ * - Dropbox 以外の URL はそのまま返す
+ */
+export function normalizeDropboxUrlForDownload(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.hostname.endsWith('dropbox.com')) return url
+    parsed.searchParams.delete('dl')
+    parsed.searchParams.set('dl', '1')
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
+/**
  * Dropbox 共有 URL を直接再生向けに正規化する。
  * - `dl` パラメータを値に関係なく削除
  * - `raw=1` を付与（すでにある場合も上書きで統一）
