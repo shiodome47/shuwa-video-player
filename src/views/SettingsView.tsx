@@ -31,19 +31,31 @@ type ImportPhase = 'idle' | 'fetching' | 'preview' | 'importing' | 'done' | 'err
  * データのエクスポート・インポート（バックアップ/リストア）を提供する。
  */
 export function SettingsView() {
+  const [showDetails, setShowDetails] = useState(false)
+
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="mb-2 text-lg font-semibold text-neutral-100">設定</h1>
-      <p className="mb-6 text-xs leading-relaxed text-neutral-600">
-        学習データはこのブラウザの IndexedDB に保存されています。
-        ブラウザのデータ消去・端末の変更・OSの再インストール等でデータが失われる場合があります。
-        大切なデータは定期的に JSON エクスポートしてください。
-      </p>
+      <div className="mb-6 flex items-start justify-between">
+        <h1 className="text-lg font-semibold text-neutral-100">設定</h1>
+        <button
+          onClick={() => setShowDetails((s) => !s)}
+          className="flex-shrink-0 rounded px-2 py-1 text-[11px] text-neutral-600 transition-colors hover:text-neutral-400"
+        >
+          {showDetails ? '補足を隠す ▴' : '補足を表示 ▾'}
+        </button>
+      </div>
+      {showDetails && (
+        <p className="mb-6 text-xs leading-relaxed text-neutral-600">
+          学習データはこのブラウザの IndexedDB に保存されています。
+          ブラウザのデータ消去・端末の変更・OSの再インストール等でデータが失われる場合があります。
+          大切なデータは定期的に JSON エクスポートしてください。
+        </p>
+      )}
       <div className="space-y-4">
         <ThemeSection />
-        <ExportSection />
-        <ImportSection />
-        <VideoSourceGuide />
+        <ExportSection showDetails={showDetails} />
+        <ImportSection showDetails={showDetails} />
+        <VideoSourceGuide showDetails={showDetails} />
         <GuideResetSection />
       </div>
     </div>
@@ -85,7 +97,7 @@ function ThemeSection() {
 
 // ─── エクスポート ──────────────────────────────────────────────
 
-function ExportSection() {
+function ExportSection({ showDetails }: { showDetails: boolean }) {
   const [exporting, setExporting] = useState(false)
   const [done, setDone] = useState(false)
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(getLastBackupAt)
@@ -123,10 +135,12 @@ function ExportSection() {
         )}
       </div>
 
-      <Note>
-        コース追加・メモ記録・ブックマーク追加・進捗更新の後はバックアップを推奨します。
-        ローカル動画のファイル参照は含まれません（YouTube・外部 URL は含まれます）。
-      </Note>
+      {showDetails && (
+        <Note>
+          コース追加・メモ記録・ブックマーク追加・進捗更新の後はバックアップを推奨します。
+          ローカル動画のファイル参照は含まれません（YouTube・外部 URL は含まれます）。
+        </Note>
+      )}
 
       <button
         onClick={() => void handleExport()}
@@ -145,7 +159,7 @@ function ExportSection() {
 
 // ─── インポート ───────────────────────────────────────────────
 
-function ImportSection() {
+function ImportSection({ showDetails }: { showDetails: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [phase, setPhase] = useState<ImportPhase>('idle')
   const [preview, setPreview] = useState<ShuwaBackup | null>(null)
@@ -240,10 +254,12 @@ function ImportSection() {
         インポートすると現在の全データが置き換えられます。事前にエクスポートしてバックアップを
         取っておくことをおすすめします。
       </Note>
-      <Note>
-        インポート後、ローカル動画が登録されているレッスンではプレイヤーから再度ファイルを選択してください。
-        YouTube・外部 URL は影響ありません。
-      </Note>
+      {showDetails && (
+        <Note>
+          インポート後、ローカル動画が登録されているレッスンではプレイヤーから再度ファイルを選択してください。
+          YouTube・外部 URL は影響ありません。
+        </Note>
+      )}
 
       {phase === 'idle' && (
         <>
@@ -375,32 +391,34 @@ function ImportSection() {
 
 // ─── 動画ソース使い分け案内 ───────────────────────────────────
 
-function VideoSourceGuide() {
+function VideoSourceGuide({ showDetails }: { showDetails: boolean }) {
   return (
     <SectionCard
       title="動画ソースの使い分け"
       description="用途に応じて適切なソースを選ぶと長期的に管理しやすくなります。"
     >
-      <div className="mt-3 space-y-2 text-[11px] leading-relaxed text-neutral-500">
-        <p>
-          <span className="font-medium text-neutral-300">ローカル</span>
-          {' '}—{' '}
-          手元の動画を使いたいとき。このブラウザ・この端末でのみ再生可。
-          別の端末や別ブラウザでは再リンクが必要です。下書きや一時素材に向いています。
-        </p>
-        <p>
-          <span className="font-medium text-neutral-300">YouTube</span>
-          {' '}—{' '}
-          長期利用・複数端末での利用に向いています。限定公開にすれば URL を知っている人のみが視聴できます。
-          ただし、機微な内容の動画には向かない場合があります。
-        </p>
-        <p>
-          <span className="font-medium text-neutral-300">外部 URL</span>
-          {' '}—{' '}
-          自前サーバーやクラウドストレージの直接 URL を使うとき。
-          URL が有効な限りどの端末でも再生できます。
-        </p>
-      </div>
+      {showDetails && (
+        <div className="mt-3 space-y-2 text-[11px] leading-relaxed text-neutral-500">
+          <p>
+            <span className="font-medium text-neutral-300">ローカル</span>
+            {' '}—{' '}
+            手元の動画を使いたいとき。このブラウザ・この端末でのみ再生可。
+            別の端末や別ブラウザでは再リンクが必要です。下書きや一時素材に向いています。
+          </p>
+          <p>
+            <span className="font-medium text-neutral-300">YouTube</span>
+            {' '}—{' '}
+            長期利用・複数端末での利用に向いています。限定公開にすれば URL を知っている人のみが視聴できます。
+            ただし、機微な内容の動画には向かない場合があります。
+          </p>
+          <p>
+            <span className="font-medium text-neutral-300">外部 URL</span>
+            {' '}—{' '}
+            自前サーバーやクラウドストレージの直接 URL を使うとき。
+            URL が有効な限りどの端末でも再生できます。
+          </p>
+        </div>
+      )}
     </SectionCard>
   )
 }
