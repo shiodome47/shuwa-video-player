@@ -20,7 +20,7 @@ export function LessonTabs({ lessonId }: { lessonId: string }) {
   const [active, setActive] = useState<Tab>('bookmarks')
 
   return (
-    <div className="flex flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* タブバー */}
       <div className="flex flex-shrink-0 border-b border-neutral-800">
         {TABS.map((tab) => (
