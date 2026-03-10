@@ -105,6 +105,11 @@ interface CourseState {
   addVideoSource: (data: CreateVideoSourceInput) => Promise<VideoSource>
   updateVideoSource: (id: string, data: UpdateVideoSourceInput) => Promise<void>
   deleteVideoSource: (id: string) => Promise<void>
+
+  // --- 並び替え ---
+  reorderCourses: (orderedIds: string[]) => Promise<void>
+  reorderSections: (orderedIds: string[]) => Promise<void>
+  reorderLessons: (orderedIds: string[]) => Promise<void>
 }
 
 // ============================================================
@@ -337,6 +342,41 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   deleteVideoSource: async (id) => {
     await storage.delete('videoSources', id)
     set((s) => ({ videoSources: s.videoSources.filter((vs) => vs.id !== id) }))
+  },
+
+  // ─── 並び替え ─────────────────────────────────────────────
+
+  reorderCourses: async (orderedIds) => {
+    const now = new Date().toISOString()
+    const updated = orderedIds.map((id, index) => ({
+      ...get().courses.find((c) => c.id === id)!,
+      order: index,
+      updatedAt: now,
+    }))
+    set((s) => ({ courses: s.courses.map((c) => updated.find((u) => u.id === c.id) ?? c) }))
+    await Promise.all(updated.map((c) => storage.put('courses', c)))
+  },
+
+  reorderSections: async (orderedIds) => {
+    const now = new Date().toISOString()
+    const updated = orderedIds.map((id, index) => ({
+      ...get().sections.find((s) => s.id === id)!,
+      order: index,
+      updatedAt: now,
+    }))
+    set((s) => ({ sections: s.sections.map((sec) => updated.find((u) => u.id === sec.id) ?? sec) }))
+    await Promise.all(updated.map((s) => storage.put('sections', s)))
+  },
+
+  reorderLessons: async (orderedIds) => {
+    const now = new Date().toISOString()
+    const updated = orderedIds.map((id, index) => ({
+      ...get().lessons.find((l) => l.id === id)!,
+      order: index,
+      updatedAt: now,
+    }))
+    set((s) => ({ lessons: s.lessons.map((l) => updated.find((u) => u.id === l.id) ?? l) }))
+    await Promise.all(updated.map((l) => storage.put('lessons', l)))
   },
 }))
 

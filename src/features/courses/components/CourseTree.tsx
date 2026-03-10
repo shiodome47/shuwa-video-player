@@ -1,9 +1,26 @@
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
   Circle,
   GraduationCap,
+  GripVertical,
   Pencil,
   Plus,
   Trash2,
@@ -23,26 +40,44 @@ import { CourseCrudDialog } from './CourseCrudDialog'
 import { LessonCrudDialog } from './LessonCrudDialog'
 import { SectionCrudDialog } from './SectionCrudDialog'
 
+/** ドラッグ開始までの最小距離・遅延（誤操作防止） */
+const MOUSE_SENSOR_OPTIONS = { activationConstraint: { distance: 4 } } as const
+const TOUCH_SENSOR_OPTIONS = { activationConstraint: { delay: 200, tolerance: 5 } } as const
+
 /**
  * コース > セクション > レッスン の階層ツリー。
- *
- * Phase 3 変更点:
- * - 各ノードに編集・削除ボタンを追加（ホバーで表示）
- * - 削除は ConfirmDialog で確認してから実行
- * - useCourseStore.getState() を Zustand セレクターに修正（反応性バグ修正）
+ * 各階層でドラッグ&ドロップによる並び替えに対応。
  */
 export function CourseTree() {
   const courses = useCourseStore((s) => s.courses)
+  const { reorderCourses } = useCourseStore()
   const [addCourseOpen, setAddCourseOpen] = useState(false)
+
+  const sorted = [...courses].sort((a, b) => a.order - b.order)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = sorted.findIndex((c) => c.id === active.id)
+    const newIndex = sorted.findIndex((c) => c.id === over.id)
+    void reorderCourses(arrayMove(sorted, oldIndex, newIndex).map((c) => c.id))
+  }
 
   return (
     <>
       <div className="space-y-0.5 px-2 pb-4">
-        {[...courses]
-          .sort((a, b) => a.order - b.order)
-          .map((course) => (
-            <CourseNode key={course.id} course={course} />
-          ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sorted.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            {sorted.map((course) => (
+              <CourseNode key={course.id} course={course} />
+            ))}
+          </SortableContext>
+        </DndContext>
 
         <button
           onClick={() => setAddCourseOpen(true)}
@@ -63,7 +98,7 @@ export function CourseTree() {
 // ─── コースノード ──────────────────────────────────────────────
 
 function CourseNode({ course }: { course: Course }) {
-  const { expandedCourseIds, toggleCourseExpanded, deleteCourse } = useCourseStore()
+  const { expandedCourseIds, toggleCourseExpanded, deleteCourse, reorderSections } = useCourseStore()
   const sections = useCourseStore((s) => selectSectionsByCourse(s, course.id))
 
   const [editOpen, setEditOpen] = useState(false)
@@ -71,10 +106,38 @@ function CourseNode({ course }: { course: Course }) {
   const [addSectionOpen, setAddSectionOpen] = useState(false)
   const isExpanded = expandedCourseIds.includes(course.id)
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: course.id,
+  })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
+  )
+
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = sections.findIndex((s) => s.id === active.id)
+    const newIndex = sections.findIndex((s) => s.id === over.id)
+    void reorderSections(arrayMove(sections, oldIndex, newIndex).map((s) => s.id))
+  }
+
   return (
-    <div>
+    <div ref={setNodeRef} style={style}>
       {/* コースヘッダー行 */}
       <div className="group flex items-center gap-1 rounded-lg px-1 hover:bg-neutral-800">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab touch-none p-0.5 text-neutral-700 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="ドラッグして並び替え"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+
         <button
           onClick={() => toggleCourseExpanded(course.id)}
           className="flex flex-1 items-center gap-1.5 py-2 text-left"
@@ -116,9 +179,13 @@ function CourseNode({ course }: { course: Course }) {
       {/* セクション一覧 */}
       {isExpanded && (
         <div className="ml-4">
-          {sections.map((section) => (
-            <SectionNode key={section.id} section={section} />
-          ))}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+            <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {sections.map((section) => (
+                <SectionNode key={section.id} section={section} />
+              ))}
+            </SortableContext>
+          </DndContext>
           {sections.length === 0 && (
             <p className="py-2 pl-3 text-[11px] text-neutral-700">
               セクションがありません
@@ -152,7 +219,7 @@ function CourseNode({ course }: { course: Course }) {
 // ─── セクションノード ───────────────────────────────────────────
 
 function SectionNode({ section }: { section: Section }) {
-  const { expandedSectionIds, toggleSectionExpanded, deleteSection } = useCourseStore()
+  const { expandedSectionIds, toggleSectionExpanded, deleteSection, reorderLessons } = useCourseStore()
   const lessons = useCourseStore((s) => selectLessonsBySection(s, section.id))
 
   const [editOpen, setEditOpen] = useState(false)
@@ -160,10 +227,38 @@ function SectionNode({ section }: { section: Section }) {
   const [addLessonOpen, setAddLessonOpen] = useState(false)
   const isExpanded = expandedSectionIds.includes(section.id)
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+  })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
+  )
+
+  const handleLessonDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = lessons.findIndex((l) => l.id === active.id)
+    const newIndex = lessons.findIndex((l) => l.id === over.id)
+    void reorderLessons(arrayMove(lessons, oldIndex, newIndex).map((l) => l.id))
+  }
+
   return (
-    <div>
+    <div ref={setNodeRef} style={style}>
       {/* セクションヘッダー行 */}
       <div className="group flex items-center gap-1 rounded-md px-1 hover:bg-neutral-800">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab touch-none p-0.5 text-neutral-700 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="ドラッグして並び替え"
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+
         <button
           onClick={() => toggleSectionExpanded(section.id)}
           className="flex flex-1 items-center gap-1.5 py-1.5 text-left"
@@ -203,9 +298,13 @@ function SectionNode({ section }: { section: Section }) {
       {/* レッスン一覧 */}
       {isExpanded && (
         <div className="ml-3">
-          {lessons.map((lesson) => (
-            <LessonItem key={lesson.id} lesson={lesson} />
-          ))}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
+            <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+              {lessons.map((lesson) => (
+                <LessonItem key={lesson.id} lesson={lesson} />
+              ))}
+            </SortableContext>
+          </DndContext>
           {lessons.length === 0 && (
             <p className="py-1.5 pl-3 text-[11px] text-neutral-700">
               レッスンがありません
@@ -250,6 +349,11 @@ function LessonItem({ lesson }: { lesson: Lesson }) {
   const match = useMatch('/lesson/:lessonId')
   const isSelected = match?.params.lessonId === lesson.id
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: lesson.id,
+  })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+
   const handleClick = () => {
     navigate(`/lesson/${lesson.id}`)
     closeSidebar()
@@ -258,11 +362,24 @@ function LessonItem({ lesson }: { lesson: Lesson }) {
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={style}
         className={cn(
           'group flex items-center gap-1 rounded-md px-1 transition-colors',
           isSelected ? 'bg-accent-900/40' : 'hover:bg-neutral-800',
         )}
       >
+        {/* ドラッグハンドル */}
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab touch-none p-0.5 text-neutral-700 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="ドラッグして並び替え"
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+
         {/* レッスン選択ボタン */}
         <button
           onClick={handleClick}
