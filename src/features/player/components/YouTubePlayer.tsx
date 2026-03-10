@@ -129,7 +129,7 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   return (
     <div className="flex flex-col bg-black">
       <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-        <div ref={containerRef} className="h-full w-full" />
+        <div ref={containerRef} className="h-full w-full [&>iframe]:block [&>iframe]:h-full [&>iframe]:w-full" />
       </div>
       <div className="bg-neutral-950">
         <ABRepeatControls
