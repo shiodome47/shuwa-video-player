@@ -15,6 +15,15 @@ import { cn } from '../utils/cn'
 import { isSafeUrl, normalizeDropboxUrlForDownload } from '../utils/url'
 
 const LAST_BACKUP_KEY = 'shuwa-last-backup-at'
+const DETAILS_SEEN_KEY = 'shuwa-settings-details-seen'
+
+function isDetailsSeen(): boolean {
+  return localStorage.getItem(DETAILS_SEEN_KEY) === '1'
+}
+
+function markDetailsSeen() {
+  localStorage.setItem(DETAILS_SEEN_KEY, '1')
+}
 
 function getLastBackupAt(): string | null {
   return localStorage.getItem(LAST_BACKUP_KEY)
@@ -31,7 +40,16 @@ type ImportPhase = 'idle' | 'fetching' | 'preview' | 'importing' | 'done' | 'err
  * データのエクスポート・インポート（バックアップ/リストア）を提供する。
  */
 export function SettingsView() {
-  const [showDetails, setShowDetails] = useState(false)
+  const firstVisit = !isDetailsSeen()
+  const [showDetails, setShowDetails] = useState(() => {
+    if (firstVisit) {
+      markDetailsSeen()
+      return true
+    }
+    return false
+  })
+  // true if this is the first render (before user toggles) — used to style the button on first visit
+  const [wasFirstVisit] = useState(firstVisit)
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
@@ -39,7 +57,12 @@ export function SettingsView() {
         <h1 className="text-lg font-semibold text-neutral-100">設定</h1>
         <button
           onClick={() => setShowDetails((s) => !s)}
-          className="flex-shrink-0 rounded px-2 py-1 text-[11px] text-neutral-600 transition-colors hover:text-neutral-400"
+          className={cn(
+            'flex-shrink-0 rounded px-2 py-1 text-[11px] transition-colors',
+            wasFirstVisit && showDetails
+              ? 'bg-accent-900/50 text-accent-400 hover:bg-accent-900/30 hover:text-accent-300'
+              : 'text-neutral-600 hover:text-neutral-400',
+          )}
         >
           {showDetails ? '補足を隠す ▴' : '補足を表示 ▾'}
         </button>
