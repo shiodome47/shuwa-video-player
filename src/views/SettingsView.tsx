@@ -310,7 +310,7 @@ function ImportSection({ showDetails }: { showDetails: boolean }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json,application/json"
+                accept=".json,.txt,application/json,text/plain,application/octet-stream"
                 className="sr-only"
                 onChange={handleFileChange}
               />
