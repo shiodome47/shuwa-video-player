@@ -60,7 +60,7 @@ export function SettingsView() {
           className={cn(
             'flex-shrink-0 rounded px-2 py-1 text-[11px] transition-colors',
             wasFirstVisit && showDetails
-              ? 'bg-accent-900/50 text-accent-400 hover:bg-accent-900/30 hover:text-accent-300'
+              ? 'bg-accent-700 text-white hover:bg-accent-600'
               : 'text-neutral-600 hover:text-neutral-400',
           )}
         >
