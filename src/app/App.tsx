@@ -1,12 +1,45 @@
+import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 import { useAppInit } from './useAppInit'
 import { router } from './router'
+import { useUIStore } from '../stores/ui'
+
+/**
+ * 選択テーマに応じて <html> の dark クラスをリアクティブに更新する。
+ * system の場合は prefers-color-scheme を監視する。
+ */
+function useApplyTheme() {
+  const theme = useUIStore((s) => s.theme)
+
+  useEffect(() => {
+    const html = document.documentElement
+    const apply = (dark: boolean) => html.classList.toggle('dark', dark)
+
+    if (theme === 'dark') {
+      apply(true)
+      return
+    }
+    if (theme === 'light') {
+      apply(false)
+      return
+    }
+
+    // system: OS 設定に追従
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    apply(mq.matches)
+    const handler = (e: MediaQueryListEvent) => apply(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [theme])
+}
 
 /**
  * アプリのルートコンポーネント。
  * IndexedDB の初期ロードが完了してからルーターを表示する。
  */
 export function App() {
+  useApplyTheme()
+
   const { isReady, error } = useAppInit()
 
   if (error) {

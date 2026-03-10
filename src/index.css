@@ -3,8 +3,11 @@
 @tailwind utilities;
 
 @layer base {
-  /* カラースキームをダークに固定（Phase 7 でライトモード追加） */
   html {
+    color-scheme: light dark;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
@@ -30,3 +33,62 @@
     @apply bg-neutral-600;
   }
 }
+
+/* ── ライトモードカラーオーバーライド ──────────────────────────────
+   darkMode: 'class' の設定で html.dark がある間はダークの既存スタイルが有効。
+   html:not(.dark) のセレクタ（擬似クラス分の特異度アップ）で上書きする。
+   ─────────────────────────────────────────────────────────────── */
+
+/* body */
+html:not(.dark) body {
+  background-color: #fafafa;
+  color: #171717;
+}
+
+/* Backgrounds */
+html:not(.dark) .bg-neutral-950 { background-color: #fafafa; }
+html:not(.dark) .bg-neutral-900 { background-color: #ffffff; }
+html:not(.dark) .bg-neutral-800 { background-color: #f5f5f5; }
+html:not(.dark) .bg-neutral-700 { background-color: #e5e5e5; }
+
+/* Backgrounds with opacity */
+html:not(.dark) .bg-neutral-900\/60 { background-color: rgb(255 255 255 / 0.9); }
+html:not(.dark) .bg-neutral-900\/40 { background-color: rgb(255 255 255 / 0.8); }
+html:not(.dark) .bg-neutral-800\/50 { background-color: rgb(245 245 245 / 0.7); }
+html:not(.dark) .bg-neutral-800\/30 { background-color: rgb(245 245 245 / 0.5); }
+
+/* Borders */
+html:not(.dark) .border-neutral-900 { border-color: #e5e5e5; }
+html:not(.dark) .border-neutral-800 { border-color: #e5e5e5; }
+html:not(.dark) .border-neutral-800\/60 { border-color: rgb(229 229 229 / 0.6); }
+html:not(.dark) .border-neutral-700 { border-color: #d4d4d4; }
+html:not(.dark) .border-neutral-600 { border-color: #d4d4d4; }
+
+/* Text */
+html:not(.dark) .text-neutral-100 { color: #171717; }
+html:not(.dark) .text-neutral-200 { color: #262626; }
+html:not(.dark) .text-neutral-300 { color: #404040; }
+html:not(.dark) .text-neutral-400 { color: #525252; }
+html:not(.dark) .text-neutral-500 { color: #737373; }
+html:not(.dark) .text-neutral-600 { color: #525252; }
+html:not(.dark) .text-neutral-700 { color: #737373; }
+
+/* Hover: backgrounds */
+html:not(.dark) .hover\:bg-neutral-950:hover { background-color: #f5f5f5; }
+html:not(.dark) .hover\:bg-neutral-900:hover { background-color: #fafafa; }
+html:not(.dark) .hover\:bg-neutral-800:hover { background-color: #f5f5f5; }
+html:not(.dark) .hover\:bg-neutral-800\/50:hover { background-color: rgb(245 245 245 / 0.7); }
+html:not(.dark) .hover\:bg-neutral-700:hover { background-color: #e5e5e5; }
+
+/* Hover: text */
+html:not(.dark) .hover\:text-neutral-100:hover { color: #171717; }
+html:not(.dark) .hover\:text-neutral-200:hover { color: #262626; }
+html:not(.dark) .hover\:text-neutral-300:hover { color: #404040; }
+
+/* Hover: borders */
+html:not(.dark) .hover\:border-neutral-600:hover { border-color: #d4d4d4; }
+html:not(.dark) .hover\:border-neutral-700:hover { border-color: #e5e5e5; }
+
+/* Scrollbar */
+html:not(.dark) ::-webkit-scrollbar-thumb { background-color: #d4d4d4; }
+html:not(.dark) ::-webkit-scrollbar-thumb:hover { background-color: #a3a3a3; }

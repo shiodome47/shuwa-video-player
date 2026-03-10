@@ -10,6 +10,8 @@ import {
 } from '../features/backup/backupUtils'
 import { clearOnboarding } from '../components/OnboardingModal'
 import { clearLessonHint } from '../components/LessonHintBar'
+import { useUIStore, type Theme } from '../stores/ui'
+import { cn } from '../utils/cn'
 
 const LAST_BACKUP_KEY = 'shuwa-last-backup-at'
 
@@ -37,12 +39,46 @@ export function SettingsView() {
         大切なデータは定期的に JSON エクスポートしてください。
       </p>
       <div className="space-y-4">
+        <ThemeSection />
         <ExportSection />
         <ImportSection />
         <VideoSourceGuide />
         <GuideResetSection />
       </div>
     </div>
+  )
+}
+
+// ─── テーマ ────────────────────────────────────────────────────
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'ライト' },
+  { value: 'dark', label: 'ダーク' },
+  { value: 'system', label: 'システム' },
+]
+
+function ThemeSection() {
+  const { theme, setTheme } = useUIStore()
+
+  return (
+    <SectionCard title="テーマ" description="アプリの表示テーマを選択します。システムは OS の設定に従います。">
+      <div className="mt-3 flex gap-1">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setTheme(opt.value)}
+            className={cn(
+              'rounded px-3 py-1.5 text-xs font-medium transition-colors',
+              theme === opt.value
+                ? 'bg-accent-700 text-white'
+                : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </SectionCard>
   )
 }
 
