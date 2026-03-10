@@ -296,7 +296,7 @@ function ImportSection() {
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 outline-none focus:border-accent-600"
               />
               <p className="text-[11px] text-neutral-600">
-                JSON を直接取得できる URL を入力してください。Dropbox のリンクは自動で補正します。
+                JSON を直接取得できる URL を入力してください。Dropbox のリンクは自動で補正しますが、取得できない場合は一度端末にダウンロードし、「ファイルから」でインポートしてください。
               </p>
               <button
                 onClick={() => void handleUrlFetch()}
