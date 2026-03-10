@@ -71,7 +71,7 @@ html:not(.dark) .text-neutral-300 { color: #404040; }
 html:not(.dark) .text-neutral-400 { color: #525252; }
 html:not(.dark) .text-neutral-500 { color: #737373; }
 html:not(.dark) .text-neutral-600 { color: #525252; }
-html:not(.dark) .text-neutral-700 { color: #737373; }
+html:not(.dark) .text-neutral-700 { color: #525252; } /* アイコン等: neutral-600相当に引き上げ */
 
 /* Hover: backgrounds */
 html:not(.dark) .hover\:bg-neutral-950:hover { background-color: #f5f5f5; }
@@ -92,6 +92,22 @@ html:not(.dark) .hover\:border-neutral-700:hover { border-color: #e5e5e5; }
 /* Scrollbar */
 html:not(.dark) ::-webkit-scrollbar-thumb { background-color: #d4d4d4; }
 html:not(.dark) ::-webkit-scrollbar-thumb:hover { background-color: #a3a3a3; }
+
+/* アクティブタブ文字: accent-300 は白背景でほぼ見えないため大幅に濃くする */
+html:not(.dark) .text-accent-300 { color: #0d9488; } /* teal-600 */
+
+/* 動画ソース行背景: bg-neutral-900/50 が未オーバーライドで真っ暗になっていた */
+html:not(.dark) .bg-neutral-900\/50 { background-color: #f9fafb; } /* gray-50 */
+
+/* 動画ソースタイプバッジ */
+html:not(.dark) .bg-red-950\/60  { background-color: #fee2e2; } /* red-100 */
+html:not(.dark) .bg-blue-950\/60 { background-color: #dbeafe; } /* blue-100 */
+html:not(.dark) .text-blue-400   { color: #2563eb; } /* blue-600 */
+
+/* 詳細パネルの区切り線 */
+html:not(.dark) .divide-neutral-800\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e5e5e5;
+}
 
 /* A-B リピートバッジ（ライトモード）
    ダーク: 暗い背景 + 明るい文字  →  ライト: 淡い背景 + 濃い文字 に反転 */
