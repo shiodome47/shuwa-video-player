@@ -63,6 +63,13 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
       videoId,
       playerVars: { rel: 0, modestbranding: 1 },
       events: {
+        onReady: () => {
+          const { pendingSeekTarget, clearPendingSeekTarget } = usePlayerStore.getState()
+          if (pendingSeekTarget !== null) {
+            playerRef.current?.seekTo(pendingSeekTarget, true)
+            clearPendingSeekTarget()
+          }
+        },
         onStateChange: (e: { data: number }) => {
           if (e.data === 0) onEndedRef.current?.()
         },
