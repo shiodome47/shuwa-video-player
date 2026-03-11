@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { VideoSource } from '../../../types'
 import { extractYouTubeId } from '../../../utils/url'
-import { usePlayerStore } from '../store'
+import { registerPlayerSeek, unregisterPlayerSeek, usePlayerStore } from '../store'
 import { ABRepeatControls } from './ABRepeatControls'
 
 // YouTube IFrame API の最小型宣言
@@ -93,12 +93,23 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
     }
   }, [videoId, initPlayer])
 
-  // A-B リピート: 100ms ポーリングで currentTime >= abB になったら abA へシーク
+  // seekPlayer() 登録: ブックマーク等からの外部シークを受け付ける
+  useEffect(() => {
+    registerPlayerSeek((t: number) => {
+      playerRef.current?.seekTo(t, true)
+    })
+    return () => unregisterPlayerSeek()
+  }, [])
+
+  // 100ms ポーリング: currentTime をストアに同期 & A-B リピート
   useEffect(() => {
     const id = setInterval(() => {
+      if (!playerRef.current) return
+      const t = playerRef.current.getCurrentTime()
+      usePlayerStore.getState().setCurrentTime(t)
+
       const { abA: a, abB: b } = usePlayerStore.getState()
-      if (a === null || b === null || !playerRef.current) return
-      if (playerRef.current.getCurrentTime() >= b) {
+      if (a !== null && b !== null && t >= b) {
         playerRef.current.seekTo(a, true)
       }
     }, 100)
