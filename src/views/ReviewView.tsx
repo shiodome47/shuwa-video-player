@@ -1,4 +1,4 @@
-import { Bookmark, FileText } from 'lucide-react'
+import { Bookmark, ChevronDown, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCourseStore } from '../features/courses/store'
@@ -9,6 +9,9 @@ import { formatTime } from '../utils/time'
 import { cn } from '../utils/cn'
 
 type Tab = 'bookmarks' | 'notes'
+
+/** 1回あたりの表示件数 */
+const PAGE_SIZE = 20
 
 /**
  * 振り返り画面（Phase 5B）。
@@ -76,11 +79,10 @@ function AllBookmarks() {
   }
 
   return (
-    <div className="divide-y divide-neutral-800/40">
-      {bookmarks.map((bm) => (
-        <BookmarkRow key={bm.id} bookmark={bm} />
-      ))}
-    </div>
+    <ShowMoreList
+      items={bookmarks}
+      renderItem={(bm) => <BookmarkRow key={bm.id} bookmark={bm} />}
+    />
   )
 }
 
@@ -142,11 +144,10 @@ function AllNotes() {
   }
 
   return (
-    <div className="divide-y divide-neutral-800/40">
-      {notes.map((note) => (
-        <NoteRow key={note.id} note={note} />
-      ))}
-    </div>
+    <ShowMoreList
+      items={notes}
+      renderItem={(note) => <NoteRow key={note.id} note={note} />}
+    />
   )
 }
 
@@ -177,6 +178,40 @@ function NoteRow({ note }: { note: Note }) {
         <span className="truncate text-[10px] text-neutral-600">{lesson?.title ?? note.lessonId}</span>
       </div>
       <p className="whitespace-pre-wrap text-xs leading-relaxed text-neutral-400">{note.content}</p>
+    </div>
+  )
+}
+
+// ─── さらに表示 ──────────────────────────────────────────────
+
+function ShowMoreList<T>({
+  items,
+  renderItem,
+}: {
+  items: T[]
+  renderItem: (item: T) => React.ReactNode
+}) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const visible = items.slice(0, visibleCount)
+  const hasMore = visibleCount < items.length
+
+  return (
+    <div>
+      <div className="divide-y divide-neutral-800/40">{visible.map(renderItem)}</div>
+      <div className="flex items-center justify-between px-4 py-2 text-[11px] text-neutral-600">
+        <span>
+          表示中 {Math.min(visibleCount, items.length)} / 全 {items.length} 件
+        </span>
+        {hasMore && (
+          <button
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="flex items-center gap-0.5 text-neutral-400 transition-colors hover:text-neutral-200"
+          >
+            さらに表示
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
