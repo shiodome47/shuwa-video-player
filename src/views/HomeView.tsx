@@ -331,5 +331,5 @@ function formatWatchTime(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60)
   if (h > 0) return `${h}時間${m > 0 ? `${m}分` : ''}`
   if (m > 0) return `${m}分`
-  return `${seconds}秒`
+  return `${Math.floor(seconds)}秒`
 }
