@@ -47,7 +47,7 @@ export function AppShell() {
             className={cn(
               'flex-shrink-0 border-r border-neutral-800 bg-neutral-900',
               // デスクトップ: 固定幅・常時表示
-              'md:relative md:w-sidebar md:translate-x-0',
+              'md:relative md:w-sidebar',
               // モバイル: ドロワー（TopBar の下から出る）
               isMobile && 'fixed top-14 bottom-0 left-0 z-40 w-sidebar',
               isMobile && 'transition-transform duration-300 ease-in-out',
