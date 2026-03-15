@@ -35,7 +35,7 @@ import { CourseCrudDialog } from './CourseCrudDialog'
 import { LessonCrudDialog } from './LessonCrudDialog'
 import { SectionCrudDialog } from './SectionCrudDialog'
 import { useTreeDnd } from '../dnd/useTreeDnd'
-import { compensateTransformAncestor } from '../dnd/modifiers'
+import { compensateSidebarTransform } from '../dnd/modifiers'
 import { CourseDragOverlay } from '../dnd/CourseDragOverlay'
 import { SectionDragOverlay } from '../dnd/SectionDragOverlay'
 import { LessonDragOverlay } from '../dnd/LessonDragOverlay'
@@ -89,7 +89,7 @@ export function CourseTree() {
             ))}
           </SortableContext>
 
-          <DragOverlay dropAnimation={null} modifiers={[compensateTransformAncestor]}>
+          <DragOverlay dropAnimation={null} modifiers={[compensateSidebarTransform]}>
             {treeDnd.activeDrag?.type === 'course' && treeDnd.activeDrag.course && (
               <CourseDragOverlay course={treeDnd.activeDrag.course} />
             )}
