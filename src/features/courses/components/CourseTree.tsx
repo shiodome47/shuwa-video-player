@@ -1,9 +1,11 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   type DragEndEvent,
   MouseSensor,
   TouchSensor,
+  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -39,6 +41,13 @@ import {
 import { CourseCrudDialog } from './CourseCrudDialog'
 import { LessonCrudDialog } from './LessonCrudDialog'
 import { SectionCrudDialog } from './SectionCrudDialog'
+import { useLessonDnd } from '../dnd/useLessonDnd'
+import { LessonDragOverlay } from '../dnd/LessonDragOverlay'
+import {
+  type LessonDragData,
+  makeLessonSortableId,
+  makeDropZoneId,
+} from '../dnd/types'
 
 /** ドラッグ開始までの最小距離・遅延（誤操作防止） */
 const MOUSE_SENSOR_OPTIONS = { activationConstraint: { distance: 4 } } as const
@@ -111,7 +120,7 @@ function CourseNode({ course }: { course: Course }) {
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
-  const sensors = useSensors(
+  const sectionSensors = useSensors(
     useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
     useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
   )
@@ -123,6 +132,9 @@ function CourseNode({ course }: { course: Course }) {
     const newIndex = sections.findIndex((s) => s.id === over.id)
     void reorderSections(arrayMove(sections, oldIndex, newIndex).map((s) => s.id))
   }
+
+  // レッスン統合 DndContext（このコース内の全セクションのレッスンを管理）
+  const lessonDnd = useLessonDnd()
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -176,16 +188,37 @@ function CourseNode({ course }: { course: Course }) {
         </div>
       </div>
 
-      {/* セクション一覧 */}
+      {/* セクション一覧（レッスン DndContext でラップ） */}
       {isExpanded && (
         <div className="ml-4">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-            <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-              {sections.map((section) => (
-                <SectionNode key={section.id} section={section} />
-              ))}
-            </SortableContext>
+          <DndContext
+            sensors={lessonDnd.sensors}
+            collisionDetection={lessonDnd.collisionDetection}
+            onDragStart={lessonDnd.onDragStart}
+            onDragOver={lessonDnd.onDragOver}
+            onDragEnd={lessonDnd.onDragEnd}
+            onDragCancel={lessonDnd.onDragCancel}
+          >
+            <DndContext sensors={sectionSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+              <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                {sections.map((section) => (
+                  <SectionNode
+                    key={section.id}
+                    section={section}
+                    isDropTarget={lessonDnd.dropTargetSectionId === section.id}
+                    isDraggingLesson={lessonDnd.activeDragLesson !== null}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+
+            <DragOverlay dropAnimation={null}>
+              {lessonDnd.activeDragLesson && (
+                <LessonDragOverlay lesson={lessonDnd.activeDragLesson} />
+              )}
+            </DragOverlay>
           </DndContext>
+
           {sections.length === 0 && (
             <p className="py-2 pl-3 text-[11px] text-neutral-700">
               セクションがありません
@@ -218,8 +251,16 @@ function CourseNode({ course }: { course: Course }) {
 
 // ─── セクションノード ───────────────────────────────────────────
 
-function SectionNode({ section }: { section: Section }) {
-  const { expandedSectionIds, toggleSectionExpanded, deleteSection, reorderLessons } = useCourseStore()
+function SectionNode({
+  section,
+  isDropTarget,
+  isDraggingLesson,
+}: {
+  section: Section
+  isDropTarget: boolean
+  isDraggingLesson: boolean
+}) {
+  const { expandedSectionIds, toggleSectionExpanded, deleteSection } = useCourseStore()
   const lessons = useCourseStore((s) => selectLessonsBySection(s, section.id))
 
   const [editOpen, setEditOpen] = useState(false)
@@ -232,18 +273,8 @@ function SectionNode({ section }: { section: Section }) {
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
-    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
-  )
-
-  const handleLessonDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = lessons.findIndex((l) => l.id === active.id)
-    const newIndex = lessons.findIndex((l) => l.id === over.id)
-    void reorderLessons(arrayMove(lessons, oldIndex, newIndex).map((l) => l.id))
-  }
+  // レッスンのソータブル ID（プレフィックス付き）
+  const lessonSortableIds = lessons.map((l) => makeLessonSortableId(l.id))
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -297,15 +328,21 @@ function SectionNode({ section }: { section: Section }) {
 
       {/* レッスン一覧 */}
       {isExpanded && (
-        <div className="ml-3">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
-            <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-              {lessons.map((lesson) => (
-                <LessonItem key={lesson.id} lesson={lesson} />
-              ))}
-            </SortableContext>
-          </DndContext>
-          {lessons.length === 0 && (
+        <div
+          className={cn(
+            'ml-3 rounded-md transition-colors',
+            isDropTarget && 'ring-1 ring-accent-500/30 bg-accent-950/10',
+          )}
+        >
+          <SortableContext items={lessonSortableIds} strategy={verticalListSortingStrategy}>
+            {lessons.map((lesson) => (
+              <LessonItem key={lesson.id} lesson={lesson} />
+            ))}
+          </SortableContext>
+          {lessons.length === 0 && isDraggingLesson && (
+            <EmptyDropZone sectionId={section.id} />
+          )}
+          {lessons.length === 0 && !isDraggingLesson && (
             <p className="py-1.5 pl-3 text-[11px] text-neutral-700">
               レッスンがありません
             </p>
@@ -336,6 +373,28 @@ function SectionNode({ section }: { section: Section }) {
   )
 }
 
+// ─── 空セクションのドロップゾーン ─────────────────────────────────
+
+function EmptyDropZone({ sectionId }: { sectionId: string }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: makeDropZoneId(sectionId),
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'mx-1 my-1 rounded-md border border-dashed px-3 py-2 text-center text-[11px] transition-colors',
+        isOver
+          ? 'border-accent-500/50 bg-accent-950/20 text-accent-400'
+          : 'border-neutral-700/50 text-neutral-600',
+      )}
+    >
+      ここにドロップ
+    </div>
+  )
+}
+
 // ─── レッスンアイテム ────────────────────────────────────────────
 
 function LessonItem({ lesson }: { lesson: Lesson }) {
@@ -349,10 +408,19 @@ function LessonItem({ lesson }: { lesson: Lesson }) {
   const match = useMatch('/lesson/:lessonId')
   const isSelected = match?.params.lessonId === lesson.id
 
+  const sortableId = makeLessonSortableId(lesson.id)
+  const dragData: LessonDragData = {
+    type: 'lesson',
+    lessonId: lesson.id,
+    sectionId: lesson.sectionId,
+    courseId: lesson.courseId,
+  }
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: lesson.id,
+    id: sortableId,
+    data: dragData,
   })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
 
   const handleClick = () => {
     navigate(`/lesson/${lesson.id}`)

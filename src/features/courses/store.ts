@@ -110,6 +110,10 @@ interface CourseState {
   reorderCourses: (orderedIds: string[]) => Promise<void>
   reorderSections: (orderedIds: string[]) => Promise<void>
   reorderLessons: (orderedIds: string[]) => Promise<void>
+
+  // --- セクション間移動 ---
+  /** レッスンを別のセクションの指定位置に移動する */
+  moveLesson: (lessonId: string, targetSectionId: string, targetIndex: number) => Promise<void>
 }
 
 // ============================================================
@@ -377,6 +381,60 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     }))
     set((s) => ({ lessons: s.lessons.map((l) => updated.find((u) => u.id === l.id) ?? l) }))
     await Promise.all(updated.map((l) => storage.put('lessons', l)))
+  },
+
+  // ─── セクション間移動 ──────────────────────────────────────
+
+  moveLesson: async (lessonId, targetSectionId, targetIndex) => {
+    const state = get()
+    const lesson = state.lessons.find((l) => l.id === lessonId)
+    if (!lesson) return
+
+    const sourceSectionId = lesson.sectionId
+    const targetSection = state.sections.find((s) => s.id === targetSectionId)
+    if (!targetSection) return
+
+    const now = new Date().toISOString()
+    const targetCourseId = targetSection.courseId
+
+    // 移動元セクションのレッスン（移動対象を除外して order 詰め直し）
+    const sourceLessons = state.lessons
+      .filter((l) => l.sectionId === sourceSectionId && l.id !== lessonId)
+      .sort((a, b) => a.order - b.order)
+      .map((l, i) => ({ ...l, order: i, updatedAt: now }))
+
+    // 移動先セクションのレッスン（挿入位置に追加して order 再インデックス）
+    const targetLessonsOld = state.lessons
+      .filter((l) => l.sectionId === targetSectionId && l.id !== lessonId)
+      .sort((a, b) => a.order - b.order)
+
+    const clampedIndex = Math.min(Math.max(0, targetIndex), targetLessonsOld.length)
+    const movedLesson: Lesson = {
+      ...lesson,
+      sectionId: targetSectionId,
+      courseId: targetCourseId,
+      updatedAt: now,
+      order: 0, // 仮値、下で再インデックス
+    }
+
+    const targetLessonsNew = [
+      ...targetLessonsOld.slice(0, clampedIndex),
+      movedLesson,
+      ...targetLessonsOld.slice(clampedIndex),
+    ].map((l, i) => ({ ...l, order: i, updatedAt: now }))
+
+    // 全変更対象のレッスン
+    const allUpdated = [...sourceLessons, ...targetLessonsNew]
+
+    // Zustand state を一括更新
+    set((s) => ({
+      lessons: s.lessons.map((l) => allUpdated.find((u) => u.id === l.id) ?? l),
+    }))
+
+    // DB に原子的に永続化
+    await storage.transaction(async () => {
+      await Promise.all(allUpdated.map((l) => storage.put('lessons', l)))
+    })
   },
 }))
 
