@@ -2,19 +2,43 @@ import {
   closestCenter,
   type CollisionDetection,
 } from '@dnd-kit/core'
-import { parseLessonSortableId, parseDropZoneId } from './types'
+import {
+  type DragData,
+  parseCourseSortableId,
+  parseSectionSortableId,
+  parseLessonSortableId,
+  parseSectionDropZoneId,
+  parseCourseDropZoneId,
+} from './types'
 
 /**
- * レッスンアイテムとセクションドロップゾーンのみを有効ターゲットとする衝突検出。
- * セクションやコースのソータブルアイテムは対象外にフィルタリングする。
+ * ドラッグ中のアイテムの種別に応じて、有効なドロップターゲットのみをフィルタリングする統合衝突検出。
+ *
+ * - course ドラッグ → course:: ターゲットのみ
+ * - section ドラッグ → section:: / course-drop-zone:: / course::（自動展開・空コースドロップ用）
+ * - lesson ドラッグ → lesson:: / section-drop-zone:: ターゲットのみ
  */
-export const lessonCollisionDetection: CollisionDetection = (args) => {
-  // 有効なターゲット（lesson:: / drop-zone:: プレフィックス付き）のみに絞る
+export const treeCollisionDetection: CollisionDetection = (args) => {
+  const dragData = args.active.data.current as DragData | undefined
+
   const filtered = {
     ...args,
     droppableContainers: args.droppableContainers.filter((container) => {
       const id = container.id
-      return parseLessonSortableId(id) !== null || parseDropZoneId(id) !== null
+      switch (dragData?.type) {
+        case 'course':
+          return parseCourseSortableId(id) !== null
+        case 'section':
+          return (
+            parseSectionSortableId(id) !== null ||
+            parseCourseDropZoneId(id) !== null ||
+            parseCourseSortableId(id) !== null
+          )
+        case 'lesson':
+          return parseLessonSortableId(id) !== null || parseSectionDropZoneId(id) !== null
+        default:
+          return false
+      }
     }),
   }
   return closestCenter(filtered)
