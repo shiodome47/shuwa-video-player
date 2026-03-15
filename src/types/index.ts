@@ -147,6 +147,7 @@ export interface ResourceLink {
   isFavorited: boolean
   /** ホーム画面固定表示用（Phase 7） */
   isPinned: boolean
+  order: number
   lastAccessedAt?: string
   createdAt: string
   updatedAt: string

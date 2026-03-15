@@ -68,6 +68,10 @@ interface ResourceState {
   deleteLink: (id: string) => Promise<void>
   /** 最終アクセス日時を更新する（リンクを開いたときに呼ぶ） */
   recordAccess: (id: string) => Promise<void>
+
+  // --- 並べ替え ---
+  reorderCategories: (orderedIds: string[]) => Promise<void>
+  reorderLinks: (orderedIds: string[]) => Promise<void>
 }
 
 // ============================================================
@@ -145,6 +149,7 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 
   addLink: async (data) => {
     const now = new Date().toISOString()
+    const order = get().links.filter((l) => l.categoryId === data.categoryId).length
     const link: ResourceLink = {
       id: crypto.randomUUID(),
       categoryId: data.categoryId,
@@ -154,6 +159,7 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
       tags: data.tags ?? [],
       isFavorited: false,
       isPinned: false,
+      order,
       createdAt: now,
       updatedAt: now,
     }
@@ -189,6 +195,30 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
     await storage.put('resourceLinks', updated)
     set((s) => ({ links: s.links.map((l) => (l.id === id ? updated : l)) }))
   },
+
+  // ─── 並べ替え ──────────────────────────────────────────
+
+  reorderCategories: async (orderedIds) => {
+    const now = new Date().toISOString()
+    const updated = orderedIds.map((id, index) => ({
+      ...get().categories.find((c) => c.id === id)!,
+      order: index,
+      updatedAt: now,
+    }))
+    set((s) => ({ categories: s.categories.map((c) => updated.find((u) => u.id === c.id) ?? c) }))
+    await Promise.all(updated.map((c) => storage.put('resourceCategories', c)))
+  },
+
+  reorderLinks: async (orderedIds) => {
+    const now = new Date().toISOString()
+    const updated = orderedIds.map((id, index) => ({
+      ...get().links.find((l) => l.id === id)!,
+      order: index,
+      updatedAt: now,
+    }))
+    set((s) => ({ links: s.links.map((l) => updated.find((u) => u.id === l.id) ?? l) }))
+    await Promise.all(updated.map((l) => storage.put('resourceLinks', l)))
+  },
 }))
 
 // ============================================================
@@ -196,7 +226,7 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 // ============================================================
 
 /**
- * 選択中カテゴリでフィルタし、お気に入り → 新着順に並べたリンク一覧。
+ * 選択中カテゴリでフィルタし、order 昇順に並べたリンク一覧。
  *
  * 使い方（コンポーネント内）:
  *   const filteredLinks = useResourceStore(selectFilteredLinks)
@@ -208,10 +238,5 @@ export function selectFilteredLinks(state: ResourceState): ResourceLink[] {
     ? state.links.filter((l) => l.categoryId === state.selectedCategoryId)
     : state.links
 
-  return [...filtered].sort((a, b) => {
-    // お気に入りを先頭に
-    if (a.isFavorited !== b.isFavorited) return a.isFavorited ? -1 : 1
-    // 次に新着順
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
+  return [...filtered].sort((a, b) => a.order - b.order)
 }

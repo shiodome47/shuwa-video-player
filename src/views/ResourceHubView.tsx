@@ -19,8 +19,14 @@ import type { ResourceCategory, ResourceLink } from '../types'
  * - カテゴリ削除の ConfirmDialog を追加
  */
 export function ResourceHubView() {
-  const { categories, selectedCategoryId, selectCategory, deleteCategory } =
-    useResourceStore()
+  const {
+    categories,
+    selectedCategoryId,
+    selectCategory,
+    deleteCategory,
+    reorderCategories,
+    reorderLinks,
+  } = useResourceStore()
   const filteredLinks = useResourceStore(selectFilteredLinks)
 
   // ─── ダイアログ状態 ───────────────────────────────────────
@@ -57,6 +63,7 @@ export function ResourceHubView() {
           onSelect={selectCategory}
           onEditCategory={setEditingCategory}
           onDeleteCategory={setDeletingCategory}
+          onReorder={reorderCategories}
         />
       )}
 
@@ -79,6 +86,7 @@ export function ResourceHubView() {
             categories={categories}
             onEditLink={setEditingLink}
             onDeleteLink={setDeletingLink}
+            onReorder={selectedCategoryId ? reorderLinks : undefined}
           />
         )}
       </div>

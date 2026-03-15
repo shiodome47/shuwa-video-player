@@ -84,5 +84,27 @@ export class ShuwaDB extends Dexie {
       resourceCategories: 'id, order',
       resourceLinks: 'id, categoryId, isFavorited, isPinned',
     })
+
+    this.version(2)
+      .stores({
+        resourceLinks: 'id, categoryId, isFavorited, isPinned, order',
+      })
+      .upgrade(async (tx) => {
+        const table = tx.table('resourceLinks')
+        const allLinks = await table.toArray()
+        const byCategory = new Map<string, any[]>()
+        for (const link of allLinks) {
+          const arr = byCategory.get(link.categoryId) ?? []
+          arr.push(link)
+          byCategory.set(link.categoryId, arr)
+        }
+        for (const links of byCategory.values()) {
+          links.sort((a: any, b: any) => {
+            if (a.isFavorited !== b.isFavorited) return a.isFavorited ? -1 : 1
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          })
+          await Promise.all(links.map((link: any, i: number) => table.put({ ...link, order: i })))
+        }
+      })
   }
 }
