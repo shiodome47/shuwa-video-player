@@ -1,3 +1,4 @@
+import { Maximize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VideoSource } from '../../../types'
 import { useUIStore } from '../../../stores/ui'
@@ -336,6 +337,16 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 px-6 text-center">
             <p className="text-sm text-red-400">{videoError}</p>
           </div>
+        )}
+        {/* シアターモード入口（通常モード時のみ） */}
+        {!isTheater && (
+          <button
+            onClick={handleTheaterToggle}
+            title="シアターモード"
+            className="absolute top-2 right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70 active:bg-black/80"
+          >
+            <Maximize2 className="h-5 w-5" />
+          </button>
         )}
       </div>
 
