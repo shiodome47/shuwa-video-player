@@ -64,7 +64,9 @@ async function enterFullscreen(el: HTMLElement) {
 async function lockLandscape() {
   try {
     // screen.orientation.lock は Chrome Android でのみ動作
-    await screen.orientation?.lock?.('landscape')
+    // TypeScript の lib.dom.d.ts には lock/unlock が定義されていない環境があるため
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (screen.orientation as any)?.lock?.('landscape')
   } catch {
     // 非対応（デスクトップ, Firefox, Safari）→ 無視
   }
@@ -72,7 +74,8 @@ async function lockLandscape() {
 
 async function unlockOrientation() {
   try {
-    screen.orientation?.unlock?.()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(screen.orientation as any)?.unlock?.()
   } catch {
     // 無視
   }
