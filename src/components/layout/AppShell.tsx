@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/useMediaQuery'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { useUIStore } from '../../stores/ui'
 import { cn } from '../../utils/cn'
 import { Sidebar } from './Sidebar'
@@ -15,21 +16,32 @@ import { TopBar } from './TopBar'
  *   TopBar + メインコンテンツ（全幅）
  *   サイドバーはドロワーとして TopBar の下から出現する
  *
- * Sidebar の位置・アニメーション・オーバーレイをここで制御する。
- * Sidebar コンポーネント自身はコンテンツ責務のみを持つ。
+ * シアターモード:
+ *   TopBar / Sidebar を非表示にし、メインコンテンツが全画面を占有する。
+ *   背景スクロールも無効化する。
  */
 export function AppShell() {
   const isMobile = useIsMobile()
-  const { isSidebarOpen, closeSidebar } = useUIStore()
+  const { isSidebarOpen, closeSidebar, layoutMode } = useUIStore()
   const location = useLocation()
+  const isTheater = layoutMode === 'theater'
 
-  // ホーム・学習のみサイドバーを表示する
+  // シアターモード中は背景スクロールを無効化
+  useScrollLock(isTheater)
+
+  // ホーム・学習のみサイドバーを表示する（シアター中は非表示）
   const showSidebar =
-    location.pathname === '/' || location.pathname.startsWith('/lesson')
+    !isTheater && (location.pathname === '/' || location.pathname.startsWith('/lesson'))
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-950">
-      <TopBar />
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden bg-neutral-950',
+        isTheater ? 'theater-container' : 'h-screen',
+      )}
+    >
+      {/* シアターモード中は TopBar を非表示 */}
+      {!isTheater && <TopBar />}
 
       <div className="relative flex flex-1 overflow-hidden">
         {/* モバイル: サイドバー展開時のオーバーレイ */}
@@ -60,7 +72,7 @@ export function AppShell() {
         )}
 
         {/* メインコンテンツ */}
-        <main className="flex-1 overflow-y-auto">
+        <main className={cn('flex-1', !isTheater && 'overflow-y-auto')}>
           <Outlet />
         </main>
       </div>

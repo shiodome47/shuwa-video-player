@@ -6,21 +6,23 @@ import { selectVideoSourcesByLesson, useCourseStore } from '../features/courses/
 import { LessonTabs } from '../features/learning/components/LessonTabs'
 import { LessonHintBar } from '../components/LessonHintBar'
 import { useLearningStore } from '../features/learning/store'
+import { TheaterLayout } from '../features/player/components/TheaterLayout'
 import { VideoPlayer } from '../features/player/components/VideoPlayer'
+import { useUIStore } from '../stores/ui'
 import { db } from '../storage/db'
 
 /**
- * 学習ビュー（Phase 5A）。
+ * 学習ビュー。
  *
- * 変更点:
- * - LessonPanel を LessonTabs（ブックマーク・メモ・詳細）に置き換え
- * - レッスン選択時に useLearningStore.loadForLesson を呼んでデータを初期化
- * - VideoSourcePanel / 進捗は「詳細」タブ内に収容
+ * layoutMode に応じて 2 つのレイアウトを切り替える:
+ * - normal: 縦レイアウト（動画 + ヒント + タブパネル）
+ * - theater: 動画を全画面風に表示（TheaterLayout に委譲）
  */
 export function LearningView() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const { lessons } = useCourseStore()
   const selectedLesson = lessonId ? lessons.find((l) => l.id === lessonId) : undefined
+  const layoutMode = useUIStore((s) => s.layoutMode)
 
   const loadForLesson = useLearningStore((s) => s.loadForLesson)
 
@@ -43,6 +45,10 @@ export function LearningView() {
     )
   }
 
+  if (layoutMode === 'theater') {
+    return <VideoAreaTheater lessonId={selectedLesson.id} />
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* 動画エリア */}
@@ -59,7 +65,7 @@ export function LearningView() {
   )
 }
 
-// ─── 動画エリア ──────────────────────────────────────────────────
+// ─── 動画エリア（通常モード） ─────────────────────────────────────
 
 function VideoAreaWrapper({ lessonId }: { lessonId: string }) {
   const videoSources = useCourseStore((s) => selectVideoSourcesByLesson(s, lessonId))
@@ -79,6 +85,32 @@ function VideoAreaWrapper({ lessonId }: { lessonId: string }) {
 
   return (
     <VideoPlayer
+      lessonId={lessonId}
+      sources={videoSources}
+      activeIndex={activeIndex}
+      onSelectIndex={setActiveIndex}
+    />
+  )
+}
+
+// ─── 動画エリア（シアターモード） ─────────────────────────────────
+
+function VideoAreaTheater({ lessonId }: { lessonId: string }) {
+  const videoSources = useCourseStore((s) => selectVideoSourcesByLesson(s, lessonId))
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  useEffect(() => {
+    setActiveIndex(0)
+    void db.playbackStates.get(lessonId).then((state) => {
+      if (!state?.activeSourceId) return
+      const idx = videoSources.findIndex((s) => s.id === state.activeSourceId)
+      if (idx > 0) setActiveIndex(idx)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonId])
+
+  return (
+    <TheaterLayout
       lessonId={lessonId}
       sources={videoSources}
       activeIndex={activeIndex}

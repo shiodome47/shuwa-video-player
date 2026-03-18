@@ -121,3 +121,23 @@ html:not(.dark) .text-red-400     { color: #dc2626; } /* red-600 */
 
 html:not(.dark) .bg-accent-900\/40 { background-color: #ccfbf1; } /* teal-100 */
 html:not(.dark) .text-accent-400  { color: #0f766e; } /* teal-700 */
+
+/* ── シアターモード ──────────────────────────────────────────────── */
+
+/* safe-area 対応のカスタムプロパティ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* シアターモードコンテナ: 100dvh + vh フォールバック */
+.theater-container {
+  height: 100vh;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+}

@@ -1,4 +1,4 @@
-import { Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import { cn } from '../../../utils/cn'
 import type { VideoControls } from '../types'
 import { ShortcutHelp } from './ShortcutHelp'
@@ -17,6 +17,10 @@ interface PlayerControlsProps {
   onVolumeChange: (v: number) => void
   onMuteToggle: () => void
   onSpeedChange: (v: number) => void
+  /** シアターモードの切り替え。undefined の場合はボタンを表示しない。 */
+  onTheaterToggle?: () => void
+  /** 現在シアターモード中かどうか */
+  isTheater?: boolean
 }
 
 function formatTime(s: number): string {
@@ -42,6 +46,8 @@ export function PlayerControls({
   onVolumeChange,
   onMuteToggle,
   onSpeedChange,
+  onTheaterToggle,
+  isTheater = false,
 }: PlayerControlsProps) {
   const btnBase = 'rounded p-1 text-neutral-400 transition-colors hover:text-neutral-100'
 
@@ -123,6 +129,21 @@ export function PlayerControls({
 
       {/* ショートカットヘルプ */}
       <ShortcutHelp />
+
+      {/* シアターモード切替 */}
+      {onTheaterToggle && (
+        <button
+          onClick={onTheaterToggle}
+          title={isTheater ? 'シアターモードを終了' : 'シアターモード'}
+          className={btnBase}
+        >
+          {isTheater ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </div>
   )
 }

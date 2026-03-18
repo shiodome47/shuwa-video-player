@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VideoSource } from '../../../types'
+import { useUIStore } from '../../../stores/ui'
 import { usePlaybackState } from '../hooks/usePlaybackState'
 import { useABRepeat } from '../hooks/useABRepeat'
 import { usePlayerShortcuts } from '../hooks/usePlayerShortcuts'
@@ -14,6 +15,8 @@ interface NativePlayerProps {
   lessonId: string
   source: VideoSource
   onEnded?: () => void
+  /** true の場合、コントロールを動画上のオーバーレイとして配置する（theater 用） */
+  overlay?: boolean
 }
 
 /**
@@ -24,7 +27,7 @@ interface NativePlayerProps {
  * - A-B リピート（useABRepeat）
  * - キーボードショートカット（usePlayerShortcuts）
  */
-export function NativePlayer({ lessonId, source, onEnded }: NativePlayerProps) {
+export function NativePlayer({ lessonId, source, onEnded, overlay = false }: NativePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
 
@@ -250,6 +253,74 @@ export function NativePlayer({ lessonId, source, onEnded }: NativePlayerProps) {
     }
   }, [setAbB])
 
+  // ── シアターモード切り替え ───────────────────────────────────
+  const { layoutMode, enterTheater, exitTheater } = useUIStore()
+  const isTheater = layoutMode === 'theater'
+  const handleTheaterToggle = useCallback(() => {
+    if (isTheater) exitTheater()
+    else enterTheater()
+  }, [isTheater, enterTheater, exitTheater])
+
+  const controlsUI = (
+    <>
+      <SeekBar
+        currentTime={currentTime}
+        duration={duration}
+        controls={controls}
+        isBuffering={isBuffering}
+        abA={abA}
+        abB={abB}
+      />
+      <ABRepeatControls
+        abA={abA}
+        abB={abB}
+        onSetA={handleSetA}
+        onSetB={handleSetB}
+        onClear={clearAB}
+      />
+      <PlayerControls
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        isBuffering={isBuffering}
+        volume={volume}
+        isMuted={isMuted}
+        playbackRate={playbackRate}
+        controls={controls}
+        onVolumeChange={handleVolumeChange}
+        onMuteToggle={handleMuteToggle}
+        onSpeedChange={handleSpeedChange}
+        onTheaterToggle={handleTheaterToggle}
+        isTheater={isTheater}
+      />
+    </>
+  )
+
+  // ── overlay モード（theater 用）────────────────────────────────
+  if (overlay) {
+    return (
+      <div className="relative h-full w-full bg-black">
+        <video
+          ref={videoRef}
+          src={source.src}
+          className="h-full w-full object-contain"
+          preload="metadata"
+          playsInline
+        />
+        {videoError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 px-6 text-center">
+            <p className="text-sm text-red-400">{videoError}</p>
+          </div>
+        )}
+        {/* オーバーレイコントロール（下部に配置） */}
+        <div className="pointer-events-auto absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-10">
+          {controlsUI}
+        </div>
+      </div>
+    )
+  }
+
+  // ── 通常モード ─────────────────────────────────────────────────
   return (
     <div className="flex flex-col bg-black">
       {/* 動画 */}
@@ -270,34 +341,7 @@ export function NativePlayer({ lessonId, source, onEnded }: NativePlayerProps) {
 
       {/* コントロール */}
       <div className="bg-neutral-950">
-        <SeekBar
-          currentTime={currentTime}
-          duration={duration}
-          controls={controls}
-          isBuffering={isBuffering}
-          abA={abA}
-          abB={abB}
-        />
-        <ABRepeatControls
-          abA={abA}
-          abB={abB}
-          onSetA={handleSetA}
-          onSetB={handleSetB}
-          onClear={clearAB}
-        />
-        <PlayerControls
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
-          isBuffering={isBuffering}
-          volume={volume}
-          isMuted={isMuted}
-          playbackRate={playbackRate}
-          controls={controls}
-          onVolumeChange={handleVolumeChange}
-          onMuteToggle={handleMuteToggle}
-          onSpeedChange={handleSpeedChange}
-        />
+        {controlsUI}
       </div>
     </div>
   )

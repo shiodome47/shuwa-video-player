@@ -13,13 +13,15 @@ interface VideoPlayerProps {
   sources: VideoSource[]
   activeIndex: number
   onSelectIndex: (i: number) => void
+  /** NativePlayer / LocalPlayer にオーバーレイモードを透過する（theater 用） */
+  overlay?: boolean
 }
 
 /**
  * 動画ソースの type に応じてプレイヤーをルーティングする。
  * 複数 source がある場合は PlaylistNav を表示してレッスン内プレイリストを提供する。
  */
-export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex }: VideoPlayerProps) {
+export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex, overlay = false }: VideoPlayerProps) {
   const safeIndex = sources.length > 0 ? Math.min(activeIndex, sources.length - 1) : 0
   const primary = sources[safeIndex]
 
@@ -52,16 +54,16 @@ export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex }: V
   }
 
   return (
-    <div className="flex flex-col">
+    <div className={overlay ? 'h-full' : 'flex flex-col'}>
       {/* プレイヤー本体 */}
       {primary.type === 'local' && (
-        <LocalPlayer key={primary.id} lessonId={lessonId} source={primary} onEnded={handleEnded} />
+        <LocalPlayer key={primary.id} lessonId={lessonId} source={primary} onEnded={handleEnded} overlay={overlay} />
       )}
       {primary.type === 'youtube' && (
         <YouTubePlayer key={primary.id} source={primary} onEnded={handleEnded} />
       )}
       {primary.type === 'remote' && (
-        <NativePlayer key={primary.id} lessonId={lessonId} source={primary} onEnded={handleEnded} />
+        <NativePlayer key={primary.id} lessonId={lessonId} source={primary} onEnded={handleEnded} overlay={overlay} />
       )}
 
       {/* プレイリストナビ（2件以上の時のみ表示） */}

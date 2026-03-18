@@ -9,6 +9,8 @@ interface LocalPlayerProps {
   lessonId: string
   source: VideoSource
   onEnded?: () => void
+  /** NativePlayer にオーバーレイモードを透過する（theater 用） */
+  overlay?: boolean
 }
 
 type LocalStatus =
@@ -29,7 +31,7 @@ type LocalStatus =
  * 4. error      — ファイル消失など → 再選択を促す
  * 5. ready      — blob URL 取得済み → NativePlayer へ
  */
-export function LocalPlayer({ lessonId, source, onEnded }: LocalPlayerProps) {
+export function LocalPlayer({ lessonId, source, onEnded, overlay = false }: LocalPlayerProps) {
   const [status, setStatus] = useState<LocalStatus>({ kind: 'loading' })
   const objectUrlRef = useRef<string | null>(null)
   // reloadCount を増やすと useEffect が再実行される
@@ -236,6 +238,7 @@ export function LocalPlayer({ lessonId, source, onEnded }: LocalPlayerProps) {
       lessonId={lessonId}
       source={{ ...source, src: status.objectUrl }}
       onEnded={onEnded}
+      overlay={overlay}
     />
   )
 }
