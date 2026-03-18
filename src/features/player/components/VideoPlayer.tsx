@@ -1,6 +1,7 @@
-import { ChevronLeft, ChevronRight, Film, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Film, Maximize2, Plus } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePlayerStore } from '../store'
+import { useUIStore } from '../../../stores/ui'
 import type { VideoSource } from '../../../types'
 import { cn } from '../../../utils/cn'
 import { LocalPlayer } from './LocalPlayer'
@@ -24,6 +25,9 @@ interface VideoPlayerProps {
 export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex, overlay = false }: VideoPlayerProps) {
   const safeIndex = sources.length > 0 ? Math.min(activeIndex, sources.length - 1) : 0
   const primary = sources[safeIndex]
+  const layoutMode = useUIStore((s) => s.layoutMode)
+  const enterTheater = useUIStore((s) => s.enterTheater)
+  const isTheater = layoutMode === 'theater'
 
   // ── Auto-advance バナー ──────────────────────────────────────
   const [showBanner, setShowBanner] = useState(false)
@@ -54,7 +58,18 @@ export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex, ove
   }
 
   return (
-    <div className={overlay ? 'h-full' : 'flex flex-col'}>
+    <div className={overlay ? 'relative h-full' : 'relative flex flex-col'}>
+      {/* シアターモード入口（通常モード時のみ、全ソースタイプ共通） */}
+      {!isTheater && (
+        <button
+          onClick={enterTheater}
+          title="シアターモード"
+          className="absolute top-2 right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70 active:bg-black/80"
+        >
+          <Maximize2 className="h-5 w-5" />
+        </button>
+      )}
+
       {/* プレイヤー本体 */}
       {primary.type === 'local' && (
         <LocalPlayer key={primary.id} lessonId={lessonId} source={primary} onEnded={handleEnded} overlay={overlay} />
