@@ -89,9 +89,11 @@ export function downloadBackupJson(backup: ShuwaBackup): void {
   const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const date = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const date = `${String(now.getFullYear()).slice(2)}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`
   a.href = url
-  a.download = `${date}_shuwa-backup.json`
+  a.download = `${date}_${time}_shuwa-backup.json`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
