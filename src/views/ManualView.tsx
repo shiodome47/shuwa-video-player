@@ -104,6 +104,13 @@ export function ManualView() {
           <div className="mt-2 space-y-0">
             {/* ── FAQ 1 ── */}
             <FaqItem question="動画はどこからセットしますか？">
+              <Note className="mb-3">
+                このアプリは動画をダウンロード・保存するものではありません。
+                YouTube の URL やスマホ内の動画ファイルなど、
+                <strong>動画がある場所を登録して再生する</strong>仕組みです。
+                動画データそのものはアプリの中には入りません。
+              </Note>
+
               <p className="mb-3">
                 このアプリでは <strong>コース → セクション → レッスン → 動画</strong> という
                 階層で管理します。動画を追加するには、まずこの階層を作ります。
