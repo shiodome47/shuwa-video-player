@@ -72,6 +72,14 @@ export function ManualView() {
               <p className="mt-1 text-neutral-500">
                 ※ メニューの表示名や位置は、機種やLINEのバージョンによって異なる場合があります。
               </p>
+
+              <SubHeading className="mt-4">うまく開けない場合（共通）</SubHeading>
+              <p>
+                上記の方法でうまくいかないときは、URLをコピーして Chrome のアドレス欄に貼り付けて開いてください。
+              </p>
+              <p className="mt-1 text-neutral-500">
+                ※ URLのコピー方法は、リンクの長押しや画面内のメニューなど、機種やLINEのバージョンによって異なる場合があります。
+              </p>
             </Foldable>
 
             <Foldable title="ホーム画面に追加する（スマホ向け）">
@@ -110,6 +118,22 @@ export function ManualView() {
                 <strong>動画がある場所を登録して再生する</strong>仕組みです。
                 動画データそのものはアプリの中には入りません。
               </Note>
+
+              <div className="mb-4 rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900/60">
+                <p className="mb-1.5 font-medium text-neutral-700 dark:text-neutral-300">
+                  レッスンで使う動画はご自身でご用意ください
+                </p>
+                <p className="mb-1.5">このアプリには教材動画は含まれていません。以下のような動画を登録できます。</p>
+                <ul className="list-disc space-y-0.5 pl-4">
+                  <li>YouTube などの動画URL</li>
+                  <li>ご自身で撮影した動画</li>
+                  <li>パソコン・スマートフォンに保存している動画ファイル</li>
+                  <li>お持ちの教材DVDなどを、必要に応じて動画ファイルに取り込んだもの</li>
+                </ul>
+                <p className="mt-1.5 text-neutral-500">
+                  ※ 動画の利用にあたっては、著作権や配信元の利用条件をご確認ください。
+                </p>
+              </div>
 
               <p className="mb-3">
                 このアプリでは <strong>コース → セクション → レッスン → 動画</strong> という
@@ -190,6 +214,17 @@ export function ManualView() {
             </FaqItem>
 
             {/* ── FAQ 3 ── */}
+            <FaqItem question="「詳細」タブでは何ができますか？">
+              <p className="mb-2">
+                レッスン画面の「<strong>詳細</strong>」タブでは、主にレッスンへの<strong>動画の追加</strong>ができます。
+              </p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>「<strong>動画ソースを追加</strong>」から YouTube URL、外部 URL、ローカル動画を登録できます</li>
+                <li>そのほか、未完了のレッスンを完了に変更することもできます</li>
+              </ul>
+            </FaqItem>
+
+            {/* ── FAQ 4 ── */}
             <FaqItem question="「リソース」とは何ですか？">
               <p className="mb-2">
                 よく使うウェブサイトを登録しておける<strong>ブックマーク機能</strong>です。
