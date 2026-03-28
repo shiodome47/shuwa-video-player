@@ -1,4 +1,4 @@
-import { BookOpen, Bookmark, Clock, ExternalLink, FileText, Play, Star } from 'lucide-react'
+import { BookOpen, Bookmark, ChevronRight, Clock, ExternalLink, FileText, Play, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCourseStore } from '../features/courses/store'
@@ -126,8 +126,12 @@ function CourseProgressSection() {
   if (courses.length === 0) return null
 
   return (
-    <section>
-      <SectionHeading icon={<BookOpen className="h-3.5 w-3.5" />} label="コース進捗" />
+    <details className="manual-foldable">
+      <summary className="flex cursor-pointer items-center gap-1.5 list-none text-[11px] font-semibold uppercase tracking-wider text-neutral-500 [&::-webkit-details-marker]:hidden">
+        <ChevronRight className="manual-chevron h-3.5 w-3.5 transition-transform duration-150" />
+        <BookOpen className="h-3.5 w-3.5" />
+        コース進捗
+      </summary>
       <div className="mt-2 space-y-2">
         {courses.map((course) => {
           const courseLessons = lessons.filter((l) => l.courseId === course.id)
@@ -164,7 +168,7 @@ function CourseProgressSection() {
           )
         })}
       </div>
-    </section>
+    </details>
   )
 }
 
