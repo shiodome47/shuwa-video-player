@@ -23,3 +23,28 @@ export function formatTime(s: number): string {
   const sec = Math.floor(s % 60)
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
+
+/**
+ * "m:ss" または "h:mm:ss" 形式の文字列を秒数に変換する。
+ * 不正な入力の場合は null を返す。
+ */
+export function parseTime(str: string): number | null {
+  const trimmed = str.trim()
+  if (!trimmed) return null
+
+  const parts = trimmed.split(':')
+  if (parts.length < 2 || parts.length > 3) return null
+
+  const nums = parts.map(Number)
+  if (nums.some((n) => !isFinite(n) || n < 0 || n !== Math.floor(n))) return null
+
+  if (parts.length === 3) {
+    const [h, m, s] = nums
+    if (m > 59 || s > 59) return null
+    return h * 3600 + m * 60 + s
+  }
+
+  const [m, s] = nums
+  if (s > 59) return null
+  return m * 60 + s
+}

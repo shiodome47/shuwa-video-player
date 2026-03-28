@@ -24,12 +24,12 @@ interface LearningStore {
 
   // ─── ブックマーク ─────────────────────────────────────────────
   addBookmark: (lessonId: string, positionSeconds: number, label: string) => Promise<void>
-  updateBookmark: (id: string, label: string) => Promise<void>
+  updateBookmark: (id: string, updates: { label?: string; positionSeconds?: number }) => Promise<void>
   deleteBookmark: (id: string) => Promise<void>
 
   // ─── メモ ─────────────────────────────────────────────────────
   addNote: (lessonId: string, content: string, positionSeconds?: number) => Promise<void>
-  updateNote: (id: string, content: string) => Promise<void>
+  updateNote: (id: string, updates: { content?: string; positionSeconds?: number }) => Promise<void>
   deleteNote: (id: string) => Promise<void>
 
   // ─── 進捗 ─────────────────────────────────────────────────────
@@ -72,10 +72,12 @@ export const useLearningStore = create<LearningStore>()((set, get) => ({
     }))
   },
 
-  updateBookmark: async (id, label) => {
-    await db.bookmarks.update(id, { label })
+  updateBookmark: async (id, updates) => {
+    await db.bookmarks.update(id, updates)
     set((s) => ({
-      bookmarks: s.bookmarks.map((b) => (b.id === id ? { ...b, label } : b)),
+      bookmarks: s.bookmarks
+        .map((b) => (b.id === id ? { ...b, ...updates } : b))
+        .sort((a, b) => a.positionSeconds - b.positionSeconds),
     }))
   },
 
@@ -99,11 +101,11 @@ export const useLearningStore = create<LearningStore>()((set, get) => ({
     set((s) => ({ notes: [...s.notes, note] }))
   },
 
-  updateNote: async (id, content) => {
+  updateNote: async (id, updates) => {
     const updatedAt = new Date().toISOString()
-    await db.notes.update(id, { content, updatedAt })
+    await db.notes.update(id, { ...updates, updatedAt })
     set((s) => ({
-      notes: s.notes.map((n) => (n.id === id ? { ...n, content, updatedAt } : n)),
+      notes: s.notes.map((n) => (n.id === id ? { ...n, ...updates, updatedAt } : n)),
     }))
   },
 

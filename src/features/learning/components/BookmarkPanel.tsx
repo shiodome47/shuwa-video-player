@@ -2,7 +2,7 @@ import { Bookmark, Pencil, Plus, Trash2, Check, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { seekPlayer, usePlayerStore } from '../../player/store'
 import { useLearningStore } from '../store'
-import { formatTime } from '../../../utils/time'
+import { formatTime, parseTime } from '../../../utils/time'
 import { cn } from '../../../utils/cn'
 
 /**
@@ -65,7 +65,8 @@ export function BookmarkPanel({ lessonId }: { lessonId: string }) {
               label={bm.label}
               positionSeconds={bm.positionSeconds}
               onSeek={() => seekPlayer(bm.positionSeconds)}
-              onSave={(label) => updateBookmark(bm.id, label)}
+              onSaveLabel={(label) => updateBookmark(bm.id, { label })}
+              onSaveTimestamp={(pos) => updateBookmark(bm.id, { positionSeconds: pos })}
               onDelete={() => deleteBookmark(bm.id)}
             />
           ))}
@@ -142,20 +143,24 @@ function BookmarkItem({
   label,
   positionSeconds,
   onSeek,
-  onSave,
+  onSaveLabel,
+  onSaveTimestamp,
   onDelete,
 }: {
   label: string
   positionSeconds: number
   onSeek: () => void
-  onSave: (label: string) => Promise<void>
+  onSaveLabel: (label: string) => Promise<void>
+  onSaveTimestamp: (positionSeconds: number) => Promise<void>
   onDelete: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(label)
+  const [editingTime, setEditingTime] = useState(false)
+  const [editTime, setEditTime] = useState('')
 
   const handleSave = async () => {
-    await onSave(editLabel.trim())
+    await onSaveLabel(editLabel.trim())
     setEditing(false)
   }
 
@@ -164,16 +169,41 @@ function BookmarkItem({
     if (e.key === 'Escape') { setEditLabel(label); setEditing(false) }
   }
 
+  const handleTimeCommit = async () => {
+    const parsed = parseTime(editTime)
+    if (parsed != null) {
+      await onSaveTimestamp(parsed)
+    }
+    setEditingTime(false)
+  }
+
+  const handleTimeKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') void handleTimeCommit()
+    if (e.key === 'Escape') setEditingTime(false)
+  }
+
   return (
-    <div className={cn('group flex items-center gap-2 px-4 py-2', editing && 'bg-neutral-900/50')}>
-      {/* タイムスタンプ（クリックでシーク）*/}
-      <button
-        onClick={onSeek}
-        className="flex-shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 transition-colors hover:bg-neutral-700"
-        title="この位置にシーク"
-      >
-        {formatTime(positionSeconds)}
-      </button>
+    <div className={cn('group flex items-center gap-2 px-4 py-2', (editing || editingTime) && 'bg-neutral-900/50')}>
+      {/* タイムスタンプ（クリックでシーク / ダブルクリックで編集）*/}
+      {editingTime ? (
+        <input
+          autoFocus
+          value={editTime}
+          onChange={(e) => setEditTime(e.target.value)}
+          onKeyDown={handleTimeKeyDown}
+          onBlur={() => void handleTimeCommit()}
+          className="w-16 flex-shrink-0 rounded border border-accent-600 bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 outline-none"
+        />
+      ) : (
+        <button
+          onClick={onSeek}
+          onDoubleClick={() => { setEditTime(formatTime(positionSeconds)); setEditingTime(true) }}
+          className="flex-shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 transition-colors hover:bg-neutral-700"
+          title="クリック: シーク / ダブルクリック: 時刻を編集"
+        >
+          {formatTime(positionSeconds)}
+        </button>
+      )}
 
       {/* ラベル or 編集フィールド */}
       {editing ? (

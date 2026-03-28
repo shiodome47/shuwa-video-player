@@ -2,7 +2,7 @@ import { FileText, Pencil, Plus, Trash2, Check, X, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { seekPlayer, usePlayerStore } from '../../player/store'
 import { useLearningStore } from '../store'
-import { formatTime } from '../../../utils/time'
+import { formatTime, parseTime } from '../../../utils/time'
 import { cn } from '../../../utils/cn'
 import type { Note } from '../../../types'
 
@@ -89,7 +89,8 @@ export function NotePanel({ lessonId }: { lessonId: string }) {
               key={note.id}
               note={note}
               onSeek={note.positionSeconds != null ? () => seekPlayer(note.positionSeconds!) : undefined}
-              onSave={(content) => updateNote(note.id, content)}
+              onSaveContent={(content) => updateNote(note.id, { content })}
+              onSaveTimestamp={(pos) => updateNote(note.id, { positionSeconds: pos })}
               onDelete={() => deleteNote(note.id)}
             />
           ))}
@@ -167,20 +168,24 @@ function AddNoteForm({
 function NoteItem({
   note,
   onSeek,
-  onSave,
+  onSaveContent,
+  onSaveTimestamp,
   onDelete,
 }: {
   note: Note
   onSeek?: () => void
-  onSave: (content: string) => Promise<void>
+  onSaveContent: (content: string) => Promise<void>
+  onSaveTimestamp: (positionSeconds: number) => Promise<void>
   onDelete: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(note.content)
+  const [editingTime, setEditingTime] = useState(false)
+  const [editTime, setEditTime] = useState('')
 
   const handleSave = async () => {
     if (!editContent.trim()) return
-    await onSave(editContent.trim())
+    await onSaveContent(editContent.trim())
     setEditing(false)
   }
 
@@ -188,18 +193,43 @@ function NoteItem({
     if (e.key === 'Escape') { setEditContent(note.content); setEditing(false) }
   }
 
+  const handleTimeCommit = async () => {
+    const parsed = parseTime(editTime)
+    if (parsed != null) {
+      await onSaveTimestamp(parsed)
+    }
+    setEditingTime(false)
+  }
+
+  const handleTimeKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') void handleTimeCommit()
+    if (e.key === 'Escape') setEditingTime(false)
+  }
+
   return (
-    <div className={cn('group px-4 py-2.5', editing && 'bg-neutral-900/50')}>
+    <div className={cn('group px-4 py-2.5', (editing || editingTime) && 'bg-neutral-900/50')}>
       {/* タイムスタンプ */}
       {note.positionSeconds != null && (
         <div className="mb-1">
-          <button
-            onClick={onSeek}
-            className="rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 transition-colors hover:bg-neutral-700"
-            title="この位置にシーク"
-          >
-            {formatTime(note.positionSeconds)}
-          </button>
+          {editingTime ? (
+            <input
+              autoFocus
+              value={editTime}
+              onChange={(e) => setEditTime(e.target.value)}
+              onKeyDown={handleTimeKeyDown}
+              onBlur={() => void handleTimeCommit()}
+              className="w-16 rounded border border-accent-600 bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 outline-none"
+            />
+          ) : (
+            <button
+              onClick={onSeek}
+              onDoubleClick={() => { setEditTime(formatTime(note.positionSeconds!)); setEditingTime(true) }}
+              className="rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-accent-400 transition-colors hover:bg-neutral-700"
+              title="クリック: シーク / ダブルクリック: 時刻を編集"
+            >
+              {formatTime(note.positionSeconds)}
+            </button>
+          )}
         </div>
       )}
 
