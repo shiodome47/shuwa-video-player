@@ -58,7 +58,13 @@ interface PlayerStore {
   setAbA: (t: number) => void
   /** B 地点を設定する。呼び出し元で B > A を保証すること。 */
   setAbB: (t: number) => void
+  /** B 地点のみ解除する（A は残す） */
+  clearAbB: () => void
   clearAB: () => void
+  /** A 地点を delta 秒だけ移動する。境界・逆転をガードする。 */
+  adjustAbA: (delta: number, duration: number) => void
+  /** B 地点を delta 秒だけ移動する。境界・逆転をガードする。 */
+  adjustAbB: (delta: number, duration: number) => void
   setPendingSeekTarget: (t: number) => void
   clearPendingSeekTarget: () => void
   setVolume: (v: number) => void
@@ -91,7 +97,22 @@ export const usePlayerStore = create<PlayerStore>()(
           abB: state.abB !== null && state.abB <= t ? null : state.abB,
         })),
       setAbB: (t) => set({ abB: t }),
+      clearAbB: () => set({ abB: null }),
       clearAB: () => set({ abA: null, abB: null }),
+      adjustAbA: (delta, duration) =>
+        set((state) => {
+          if (state.abA === null) return state
+          const raw = state.abA + delta
+          const upper = state.abB !== null ? state.abB - 0.1 : duration
+          return { abA: Math.max(0, Math.min(raw, upper)) }
+        }),
+      adjustAbB: (delta, duration) =>
+        set((state) => {
+          if (state.abB === null) return state
+          const raw = state.abB + delta
+          const lower = state.abA !== null ? state.abA + 0.1 : 0
+          return { abB: Math.max(lower, Math.min(raw, duration)) }
+        }),
       setPendingSeekTarget: (t) => set({ pendingSeekTarget: t }),
       clearPendingSeekTarget: () => set({ pendingSeekTarget: null }),
       setVolume: (v) => set({ volume: v }),

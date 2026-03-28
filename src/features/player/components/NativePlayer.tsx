@@ -50,7 +50,10 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
     setPlaybackRate,
     setAbA,
     setAbB,
+    clearAbB,
     clearAB,
+    adjustAbA,
+    adjustAbB,
     resetEphemeral,
   } = usePlayerStore()
 
@@ -240,18 +243,35 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
     [setPlaybackRate],
   )
 
-  // ── A-B ハンドラ ─────────────────────────────────────────────
-  const handleSetA = useCallback(() => {
-    setAbA(videoRef.current?.currentTime ?? 0)
-  }, [setAbA])
-
-  const handleSetB = useCallback(() => {
+  // ── A-B ハンドラ（トグル: 未設定→設定、設定済み→解除）─────────
+  const handleToggleA = useCallback(() => {
     const { abA: currentAbA } = usePlayerStore.getState()
-    const t = videoRef.current?.currentTime ?? 0
-    if (currentAbA !== null && t > currentAbA) {
-      setAbB(t)
+    if (currentAbA !== null) {
+      clearAB() // A 解除時は B も連動解除
+    } else {
+      setAbA(videoRef.current?.currentTime ?? 0)
     }
-  }, [setAbB])
+  }, [setAbA, clearAB])
+
+  const handleToggleB = useCallback(() => {
+    const { abA: currentAbA, abB: currentAbB } = usePlayerStore.getState()
+    if (currentAbB !== null) {
+      clearAbB() // B のみ解除（A は残す）
+    } else {
+      const t = videoRef.current?.currentTime ?? 0
+      if (currentAbA !== null && t > currentAbA) {
+        setAbB(t)
+      }
+    }
+  }, [setAbB, clearAbB])
+
+  const handleAdjustA = useCallback((delta: number) => {
+    adjustAbA(delta, duration)
+  }, [adjustAbA, duration])
+
+  const handleAdjustB = useCallback((delta: number) => {
+    adjustAbB(delta, duration)
+  }, [adjustAbB, duration])
 
   // ── シアターモード切り替え ───────────────────────────────────
   const { layoutMode, enterTheater, exitTheater } = useUIStore()
@@ -274,8 +294,10 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
       <ABRepeatControls
         abA={abA}
         abB={abB}
-        onSetA={handleSetA}
-        onSetB={handleSetB}
+        onToggleA={handleToggleA}
+        onToggleB={handleToggleB}
+        onAdjustA={handleAdjustA}
+        onAdjustB={handleAdjustB}
         onClear={clearAB}
         isTheater={isTheater}
       />

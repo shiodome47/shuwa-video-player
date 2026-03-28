@@ -4,8 +4,15 @@ import { cn } from '../../../utils/cn'
 interface ABRepeatControlsProps {
   abA: number | null
   abB: number | null
-  onSetA: () => void
-  onSetB: () => void
+  /** A ボタンのトグル（未設定→設定、設定済み→解除） */
+  onToggleA: () => void
+  /** B ボタンのトグル（未設定→設定、設定済み→解除） */
+  onToggleB: () => void
+  /** A 地点を delta 秒移動する */
+  onAdjustA: (delta: number) => void
+  /** B 地点を delta 秒移動する */
+  onAdjustB: (delta: number) => void
+  /** A/B を全解除する */
   onClear: () => void
   isTheater?: boolean
 }
@@ -16,45 +23,57 @@ function fmt(s: number): string {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+const STEP = 0.5
+
 /**
  * A-B リピートの操作 UI。
- * SeekBar の直下、PlayerControls の上に配置する。
  *
- * 状態ごとの表示:
- * - 未設定     : [A] [B] — B は無効
- * - A のみ設定 : [A: 0:30] [B] — B が有効になる
- * - 両方設定   : [A: 0:30] [B: 1:45] [✕] + ループ中バッジ
+ * レイアウト:
+ *   [A]  [B]                    ← 未設定時
+ *   [A: 0:03] → [B: 0:04]  A- A+  B- B+   ×   ← 両方設定時
  *
- * シアターモード（黒グラデーション上）では全要素を白系に引き上げる。
+ * A/B ボタン: 設定/解除のトグル専用
+ * A-/A+/B-/B+: 0.5秒単位の微調整
+ * ×: 全解除（微調整ボタンと間隔を空けて誤タップ防止）
  */
 export function ABRepeatControls({
   abA,
   abB,
-  onSetA,
-  onSetB,
+  onToggleA,
+  onToggleB,
+  onAdjustA,
+  onAdjustB,
   onClear,
   isTheater = false,
 }: ABRepeatControlsProps) {
   const isActive = abA !== null && abB !== null
-  const btnBase =
-    'rounded px-2 py-0.5 text-[11px] font-medium transition-colors'
+  const hasAny = abA !== null || abB !== null
 
-  // 未設定時のボタン色
+  // ── 色定義 ──────────────────────────────────────────────────
   const unsetColor = isTheater
     ? 'text-white/70 hover:bg-white/10 hover:text-white'
     : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'
+
+  const adjustBase = cn(
+    'rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors',
+    isTheater
+      ? 'text-white/60 hover:bg-white/10 hover:text-white'
+      : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200',
+  )
+
+  const adjustDisabled = 'cursor-not-allowed opacity-30'
 
   return (
     <div className={cn(
       'flex items-center gap-1.5 border-t px-3 py-1',
       isTheater ? 'border-white/10' : 'border-neutral-900',
     )}>
-      {/* A ボタン */}
+      {/* A ボタン（トグル） */}
       <button
-        onClick={onSetA}
-        title="A地点を設定（ショートカット: a）"
+        onClick={onToggleA}
+        title={abA !== null ? 'A地点を解除（ショートカット: a）' : 'A地点を設定（ショートカット: a）'}
         className={cn(
-          btnBase,
+          'rounded px-2 py-0.5 text-[11px] font-medium transition-colors',
           abA !== null
             ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
             : unsetColor,
@@ -68,52 +87,92 @@ export function ABRepeatControls({
         <span className={cn('text-[10px]', isTheater ? 'text-white/50' : 'text-neutral-400')}>→</span>
       )}
 
-      {/* B ボタン */}
+      {/* B ボタン（トグル） */}
       <button
-        onClick={onSetB}
-        disabled={abA === null}
+        onClick={onToggleB}
+        disabled={abA === null && abB === null}
         title={
-          abA === null
-            ? 'A地点を先に設定してください'
-            : 'B地点を設定（ショートカット: b）'
+          abB !== null
+            ? 'B地点を解除（ショートカット: b）'
+            : abA === null
+              ? 'A地点を先に設定してください'
+              : 'B地点を設定（ショートカット: b）'
         }
         className={cn(
-          btnBase,
-          abA === null && (isTheater ? 'cursor-not-allowed opacity-50' : 'cursor-not-allowed opacity-30'),
+          'rounded px-2 py-0.5 text-[11px] font-medium transition-colors',
+          abA === null && abB === null && 'cursor-not-allowed',
+          abA === null && abB === null && (isTheater ? 'opacity-50' : 'opacity-30'),
           abB !== null
             ? 'bg-red-900/50 text-red-400 hover:bg-red-900'
-            : unsetColor,
-          abA !== null && abB === null && (isTheater ? 'text-white/80' : 'text-neutral-300'),
+            : abA !== null
+              ? (isTheater ? 'text-white/80' : 'text-neutral-300')
+              : unsetColor,
         )}
       >
         B{abB !== null ? `: ${fmt(abB)}` : ''}
       </button>
 
-      {/* ループ中バッジ */}
-      {isActive && (
-        <span className="rounded bg-accent-900/40 px-1.5 py-0.5 text-[10px] font-medium text-accent-400">
-          ↻ ループ中
-        </span>
-      )}
+      {/* ── 微調整ボタン群（A/B いずれか設定時に表示） ── */}
+      {hasAny && (
+        <>
+          {/* A 微調整 */}
+          <div className="ml-1 flex items-center gap-0.5">
+            <button
+              onClick={() => onAdjustA(-STEP)}
+              disabled={abA === null}
+              title="A を 0.5秒 前に移動"
+              className={cn(adjustBase, abA === null && adjustDisabled)}
+            >
+              A-
+            </button>
+            <button
+              onClick={() => onAdjustA(STEP)}
+              disabled={abA === null}
+              title="A を 0.5秒 後に移動"
+              className={cn(adjustBase, abA === null && adjustDisabled)}
+            >
+              A+
+            </button>
+          </div>
 
-      {/* 解除ボタン */}
-      {(abA !== null || abB !== null) && (
-        <button
-          onClick={onClear}
-          title="A-Bリピートを解除（ショートカット: Esc）"
-          className={cn(
-            'ml-1 rounded p-0.5 transition-colors',
-            isTheater
-              ? 'text-white/60 hover:text-white'
-              : 'text-neutral-400 hover:text-neutral-200',
-          )}
-        >
-          <X className="h-3 w-3" />
-        </button>
+          {/* B 微調整 */}
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => onAdjustB(-STEP)}
+              disabled={abB === null}
+              title="B を 0.5秒 前に移動"
+              className={cn(adjustBase, abB === null && adjustDisabled)}
+            >
+              B-
+            </button>
+            <button
+              onClick={() => onAdjustB(STEP)}
+              disabled={abB === null}
+              title="B を 0.5秒 後に移動"
+              className={cn(adjustBase, abB === null && adjustDisabled)}
+            >
+              B+
+            </button>
+          </div>
+
+          {/* × 全解除（間隔を空けて誤タップ防止） */}
+          <button
+            onClick={onClear}
+            title="A-Bリピートを解除（ショートカット: Esc）"
+            className={cn(
+              'ml-3 rounded p-0.5 transition-colors',
+              isTheater
+                ? 'text-white/40 hover:text-white'
+                : 'text-neutral-500 hover:text-neutral-200',
+            )}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </>
       )}
 
       {/* 未設定時のヒント */}
-      {abA === null && abB === null && (
+      {!hasAny && (
         <span className={cn('ml-auto text-[10px]', isTheater ? 'text-white/60' : 'text-neutral-500')}>
           A → B でリピート区間を設定
         </span>

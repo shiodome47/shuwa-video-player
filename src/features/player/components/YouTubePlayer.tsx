@@ -50,7 +50,7 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   const onEndedRef = useRef(onEnded)
   onEndedRef.current = onEnded
 
-  const { abA, abB, setAbA, setAbB, clearAB } = usePlayerStore()
+  const { abA, abB, duration, setAbA, setAbB, clearAbB, clearAB, adjustAbA, adjustAbB } = usePlayerStore()
 
   // YT.Player を初期化する。container 内に placeholder div を作り直してから渡す
   const initPlayer = useCallback(() => {
@@ -123,15 +123,32 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
     return () => clearInterval(id)
   }, [])
 
-  const handleSetA = useCallback(() => {
-    setAbA(playerRef.current?.getCurrentTime() ?? 0)
-  }, [setAbA])
-
-  const handleSetB = useCallback(() => {
+  const handleToggleA = useCallback(() => {
     const { abA: currentAbA } = usePlayerStore.getState()
-    const t = playerRef.current?.getCurrentTime() ?? 0
-    if (currentAbA !== null && t > currentAbA) setAbB(t)
-  }, [setAbB])
+    if (currentAbA !== null) {
+      clearAB()
+    } else {
+      setAbA(playerRef.current?.getCurrentTime() ?? 0)
+    }
+  }, [setAbA, clearAB])
+
+  const handleToggleB = useCallback(() => {
+    const { abA: currentAbA, abB: currentAbB } = usePlayerStore.getState()
+    if (currentAbB !== null) {
+      clearAbB()
+    } else {
+      const t = playerRef.current?.getCurrentTime() ?? 0
+      if (currentAbA !== null && t > currentAbA) setAbB(t)
+    }
+  }, [setAbB, clearAbB])
+
+  const handleAdjustA = useCallback((delta: number) => {
+    adjustAbA(delta, duration)
+  }, [adjustAbA, duration])
+
+  const handleAdjustB = useCallback((delta: number) => {
+    adjustAbB(delta, duration)
+  }, [adjustAbB, duration])
 
   if (!videoId) {
     return (
@@ -153,8 +170,10 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
         <ABRepeatControls
           abA={abA}
           abB={abB}
-          onSetA={handleSetA}
-          onSetB={handleSetB}
+          onToggleA={handleToggleA}
+          onToggleB={handleToggleB}
+          onAdjustA={handleAdjustA}
+          onAdjustB={handleAdjustB}
           onClear={clearAB}
         />
       </div>

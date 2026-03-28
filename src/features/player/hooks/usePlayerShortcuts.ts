@@ -14,8 +14,8 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
  * - j / J        : 10秒戻す
  * - l / L        : 10秒進む
  * - [ / ]        : 再生速度を下げる / 上げる
- * - a / A        : A地点を現在位置に設定
- * - b / B        : B地点を現在位置に設定（A設定済みかつ B > A の場合のみ）
+ * - a / A        : A地点のトグル（未設定→設定、設定済み→全解除）
+ * - b / B        : B地点のトグル（未設定→設定、設定済み→B解除）
  * - Escape       : A-B リピートを解除
  *
  * input / textarea / select / contentEditable / dialog 内ではすべて無効化する。
@@ -95,18 +95,26 @@ export function usePlayerShortcuts(
         case 'a':
         case 'A': {
           e.preventDefault()
-          const t = video?.currentTime ?? 0
-          usePlayerStore.getState().setAbA(t)
+          const { abA } = usePlayerStore.getState()
+          if (abA !== null) {
+            usePlayerStore.getState().clearAB()
+          } else {
+            usePlayerStore.getState().setAbA(video?.currentTime ?? 0)
+          }
           break
         }
 
         case 'b':
         case 'B': {
           e.preventDefault()
-          const { abA } = usePlayerStore.getState()
-          const t = video?.currentTime ?? 0
-          if (abA !== null && t > abA) {
-            usePlayerStore.getState().setAbB(t)
+          const { abA, abB } = usePlayerStore.getState()
+          if (abB !== null) {
+            usePlayerStore.getState().clearAbB()
+          } else if (abA !== null) {
+            const t = video?.currentTime ?? 0
+            if (t > abA) {
+              usePlayerStore.getState().setAbB(t)
+            }
           }
           break
         }
