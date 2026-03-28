@@ -127,7 +127,7 @@ export function ManualView() {
                 <ul className="list-disc space-y-0.5 pl-4">
                   <li>YouTube などの動画URL</li>
                   <li>ご自身で撮影した動画</li>
-                  <li>パソコン・スマートフォンに保存している動画ファイル</li>
+                  <li>パソコン・スマートフォンや Dropbox に保存している動画ファイル</li>
                   <li>お持ちの教材DVDなどを、必要に応じて動画ファイルに取り込んだもの</li>
                 </ul>
                 <p className="mt-1.5 text-neutral-500">
