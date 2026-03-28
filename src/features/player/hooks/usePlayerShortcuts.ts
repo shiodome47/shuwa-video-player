@@ -112,9 +112,9 @@ export function usePlayerShortcuts(
             usePlayerStore.getState().clearAbB()
           } else if (abA !== null) {
             const t = video?.currentTime ?? 0
-            if (t > abA) {
-              usePlayerStore.getState().setAbB(t)
-            }
+            const { duration: dur } = usePlayerStore.getState()
+            const bTime = t > abA ? t : Math.min(abA + 0.1, dur || Infinity)
+            usePlayerStore.getState().setAbB(bTime)
           }
           break
         }

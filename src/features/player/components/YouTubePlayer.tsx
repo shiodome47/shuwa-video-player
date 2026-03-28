@@ -133,12 +133,13 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   }, [setAbA, clearAB])
 
   const handleToggleB = useCallback(() => {
-    const { abA: currentAbA, abB: currentAbB } = usePlayerStore.getState()
+    const { abA: currentAbA, abB: currentAbB, duration: dur } = usePlayerStore.getState()
     if (currentAbB !== null) {
       clearAbB()
-    } else {
+    } else if (currentAbA !== null) {
       const t = playerRef.current?.getCurrentTime() ?? 0
-      if (currentAbA !== null && t > currentAbA) setAbB(t)
+      const bTime = t > currentAbA ? t : Math.min(currentAbA + 0.1, dur || Infinity)
+      setAbB(bTime)
     }
   }, [setAbB, clearAbB])
 

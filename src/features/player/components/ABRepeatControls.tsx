@@ -28,13 +28,13 @@ const STEP = 0.5
 /**
  * A-B リピートの操作 UI。
  *
- * レイアウト:
- *   [A]  [B]                    ← 未設定時
- *   [A: 0:03] → [B: 0:04]  A- A+  B- B+   ×   ← 両方設定時
+ * 2つのモード:
+ *   初期状態（A/B 未設定）: [A] [B] + ヒントテキスト — コンパクト
+ *   編集モード（A or B 設定済み）: [A: 0:03] → [B: 0:04] [A-][A+] [B-][B+] [×] — 拡張
  *
- * A/B ボタン: 設定/解除のトグル専用
- * A-/A+/B-/B+: 0.5秒単位の微調整
- * ×: 全解除（微調整ボタンと間隔を空けて誤タップ防止）
+ * 編集モードでは行の高さを増やし、タップしやすいボタンサイズにする。
+ * 未設定側の微調整ボタンは非表示（スマホ横幅の節約）。
+ * A/B すべて解除で初期状態に戻る。
  */
 export function ABRepeatControls({
   abA,
@@ -47,25 +47,30 @@ export function ABRepeatControls({
   isTheater = false,
 }: ABRepeatControlsProps) {
   const isActive = abA !== null && abB !== null
-  const hasAny = abA !== null || abB !== null
+  const editing = abA !== null || abB !== null
 
   // ── 色定義 ──────────────────────────────────────────────────
   const unsetColor = isTheater
     ? 'text-white/70 hover:bg-white/10 hover:text-white'
     : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'
 
-  const adjustBase = cn(
-    'rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors',
+  // 編集モード時の微調整ボタン — タップしやすいサイズ
+  const adjustBtn = cn(
+    'rounded px-2 py-1 text-[11px] font-medium transition-colors',
     isTheater
-      ? 'text-white/60 hover:bg-white/10 hover:text-white'
-      : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200',
+      ? 'text-white/60 hover:bg-white/10 hover:text-white active:bg-white/20'
+      : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 active:bg-neutral-700',
   )
 
-  const adjustDisabled = 'cursor-not-allowed opacity-30'
+  // A/B トグルボタンの共通サイズ（編集モード時は大きめ）
+  const toggleBtnSize = editing
+    ? 'rounded px-2.5 py-1 text-xs font-medium transition-colors'
+    : 'rounded px-2 py-0.5 text-[11px] font-medium transition-colors'
 
   return (
     <div className={cn(
-      'flex items-center gap-1.5 border-t px-3 py-1',
+      'flex items-center gap-1.5 border-t px-3 transition-[padding]',
+      editing ? 'py-2' : 'py-1',
       isTheater ? 'border-white/10' : 'border-neutral-900',
     )}>
       {/* A ボタン（トグル） */}
@@ -73,7 +78,7 @@ export function ABRepeatControls({
         onClick={onToggleA}
         title={abA !== null ? 'A地点を解除（ショートカット: a）' : 'A地点を設定（ショートカット: a）'}
         className={cn(
-          'rounded px-2 py-0.5 text-[11px] font-medium transition-colors',
+          toggleBtnSize,
           abA !== null
             ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
             : unsetColor,
@@ -99,7 +104,7 @@ export function ABRepeatControls({
               : 'B地点を設定（ショートカット: b）'
         }
         className={cn(
-          'rounded px-2 py-0.5 text-[11px] font-medium transition-colors',
+          toggleBtnSize,
           abA === null && abB === null && 'cursor-not-allowed',
           abA === null && abB === null && (isTheater ? 'opacity-50' : 'opacity-30'),
           abB !== null
@@ -112,55 +117,39 @@ export function ABRepeatControls({
         B{abB !== null ? `: ${fmt(abB)}` : ''}
       </button>
 
-      {/* ── 微調整ボタン群（A/B いずれか設定時に表示） ── */}
-      {hasAny && (
+      {/* ── 編集モード: 微調整ボタン群 ── */}
+      {editing && (
         <>
-          {/* A 微調整 */}
-          <div className="ml-1 flex items-center gap-0.5">
-            <button
-              onClick={() => onAdjustA(-STEP)}
-              disabled={abA === null}
-              title="A を 0.5秒 前に移動"
-              className={cn(adjustBase, abA === null && adjustDisabled)}
-            >
-              A-
-            </button>
-            <button
-              onClick={() => onAdjustA(STEP)}
-              disabled={abA === null}
-              title="A を 0.5秒 後に移動"
-              className={cn(adjustBase, abA === null && adjustDisabled)}
-            >
-              A+
-            </button>
-          </div>
+          {/* A 微調整（A 設定時のみ表示） */}
+          {abA !== null && (
+            <div className="ml-1 flex items-center gap-0.5">
+              <button onClick={() => onAdjustA(-STEP)} title="A を 0.5秒前に" className={adjustBtn}>
+                A-
+              </button>
+              <button onClick={() => onAdjustA(STEP)} title="A を 0.5秒後に" className={adjustBtn}>
+                A+
+              </button>
+            </div>
+          )}
 
-          {/* B 微調整 */}
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => onAdjustB(-STEP)}
-              disabled={abB === null}
-              title="B を 0.5秒 前に移動"
-              className={cn(adjustBase, abB === null && adjustDisabled)}
-            >
-              B-
-            </button>
-            <button
-              onClick={() => onAdjustB(STEP)}
-              disabled={abB === null}
-              title="B を 0.5秒 後に移動"
-              className={cn(adjustBase, abB === null && adjustDisabled)}
-            >
-              B+
-            </button>
-          </div>
+          {/* B 微調整（B 設定時のみ表示） */}
+          {abB !== null && (
+            <div className="flex items-center gap-0.5">
+              <button onClick={() => onAdjustB(-STEP)} title="B を 0.5秒前に" className={adjustBtn}>
+                B-
+              </button>
+              <button onClick={() => onAdjustB(STEP)} title="B を 0.5秒後に" className={adjustBtn}>
+                B+
+              </button>
+            </div>
+          )}
 
           {/* × 全解除（間隔を空けて誤タップ防止） */}
           <button
             onClick={onClear}
             title="A-Bリピートを解除（ショートカット: Esc）"
             className={cn(
-              'ml-3 rounded p-0.5 transition-colors',
+              'ml-4 rounded p-1 transition-colors',
               isTheater
                 ? 'text-white/40 hover:text-white'
                 : 'text-neutral-500 hover:text-neutral-200',
@@ -171,8 +160,8 @@ export function ABRepeatControls({
         </>
       )}
 
-      {/* 未設定時のヒント */}
-      {!hasAny && (
+      {/* 初期状態のヒント */}
+      {!editing && (
         <span className={cn('ml-auto text-[10px]', isTheater ? 'text-white/60' : 'text-neutral-500')}>
           A → B でリピート区間を設定
         </span>

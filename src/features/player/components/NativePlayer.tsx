@@ -254,14 +254,14 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
   }, [setAbA, clearAB])
 
   const handleToggleB = useCallback(() => {
-    const { abA: currentAbA, abB: currentAbB } = usePlayerStore.getState()
+    const { abA: currentAbA, abB: currentAbB, duration: dur } = usePlayerStore.getState()
     if (currentAbB !== null) {
       clearAbB() // B のみ解除（A は残す）
-    } else {
+    } else if (currentAbA !== null) {
       const t = videoRef.current?.currentTime ?? 0
-      if (currentAbA !== null && t > currentAbA) {
-        setAbB(t)
-      }
+      // 現在位置が A より後ならそのまま、A 以下なら A+0.1 を B にする
+      const bTime = t > currentAbA ? t : Math.min(currentAbA + 0.1, dur || Infinity)
+      setAbB(bTime)
     }
   }, [setAbB, clearAbB])
 
