@@ -52,7 +52,12 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   const onEndedRef = useRef(onEnded)
   onEndedRef.current = onEnded
 
-  const { abA, abB, duration, setAbA, setAbB, clearAbB, clearAB, adjustAbA, adjustAbB } = usePlayerStore()
+  const { abA, abB, duration, setAbA, setAbB, clearAbB, clearAB, adjustAbA, adjustAbB, resetEphemeral } = usePlayerStore()
+
+  // ── エフェメラルリセット（ソース切り替え時） ──────────────────
+  useEffect(() => {
+    resetEphemeral()
+  }, [resetEphemeral])
 
   // YT.Player を初期化する。container 内に placeholder div を作り直してから渡す
   const initPlayer = useCallback(() => {
