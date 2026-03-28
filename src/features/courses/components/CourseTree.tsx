@@ -113,7 +113,7 @@ export function CourseTree() {
 
         <Link
           to="/manual"
-          className="mt-2 flex w-full items-center gap-1.5 rounded-lg border border-accent-700/50 bg-accent-950/30 px-3 py-2 text-[11px] font-medium text-accent-400 transition-colors hover:bg-accent-900/40 hover:text-accent-300"
+          className="mt-2 flex w-full items-center gap-1.5 rounded-lg bg-accent-800 px-3 py-2 text-[11px] font-medium text-white shadow-[0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all hover:bg-accent-700 hover:shadow-[0_3px_6px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] active:shadow-[0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)]"
         >
           <HelpCircle className="h-3.5 w-3.5" />
           取扱説明書

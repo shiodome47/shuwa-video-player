@@ -122,6 +122,21 @@ html:not(.dark) .text-red-400     { color: #dc2626; } /* red-600 */
 html:not(.dark) .bg-accent-900\/40 { background-color: #ccfbf1; } /* teal-100 */
 html:not(.dark) .text-accent-400  { color: #0f766e; } /* teal-700 */
 
+/* ── 取扱説明書: 折りたたみ ─────────────────────────────────────── */
+
+details.manual-foldable > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.manual-foldable > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.manual-foldable[open] > summary .manual-chevron {
+  transform: rotate(90deg);
+}
+
 /* ── シアターモード ──────────────────────────────────────────────── */
 
 /* safe-area 対応のカスタムプロパティ */
