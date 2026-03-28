@@ -5,6 +5,7 @@ import { registerPlayerSeek, unregisterPlayerSeek, usePlayerStore } from '../sto
 import { ABRepeatControls } from './ABRepeatControls'
 
 // YouTube IFrame API の最小型宣言
+// getDuration() は YT.Player API で動画の長さ（秒）を返す
 declare global {
   interface Window {
     YT: {
@@ -26,6 +27,7 @@ declare global {
 
 interface YTPlayer {
   getCurrentTime(): number
+  getDuration(): number
   seekTo(seconds: number, allowSeekAhead: boolean): void
   destroy(): void
 }
@@ -108,14 +110,21 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
     return () => unregisterPlayerSeek()
   }, [])
 
-  // 100ms ポーリング: currentTime をストアに同期 & A-B リピート
+  // 100ms ポーリング: currentTime / duration をストアに同期 & A-B リピート
   useEffect(() => {
     const id = setInterval(() => {
       if (!playerRef.current) return
       const t = playerRef.current.getCurrentTime()
-      usePlayerStore.getState().setCurrentTime(t)
+      const store = usePlayerStore.getState()
+      store.setCurrentTime(t)
 
-      const { abA: a, abB: b } = usePlayerStore.getState()
+      // duration を同期（YT API は準備完了後に正しい値を返す）
+      const dur = playerRef.current.getDuration()
+      if (dur > 0 && store.duration !== dur) {
+        store.setDuration(dur)
+      }
+
+      const { abA: a, abB: b } = store
       if (a !== null && b !== null && t >= b) {
         playerRef.current.seekTo(a, true)
       }
@@ -144,11 +153,14 @@ export function YouTubePlayer({ source, onEnded }: YouTubePlayerProps) {
   }, [setAbB, clearAbB])
 
   const handleAdjustA = useCallback((delta: number) => {
-    adjustAbA(delta, duration)
+    // store の duration が未同期の場合は YT API から直接取得
+    const dur = duration || playerRef.current?.getDuration() || Infinity
+    adjustAbA(delta, dur)
   }, [adjustAbA, duration])
 
   const handleAdjustB = useCallback((delta: number) => {
-    adjustAbB(delta, duration)
+    const dur = duration || playerRef.current?.getDuration() || Infinity
+    adjustAbB(delta, dur)
   }, [adjustAbB, duration])
 
   if (!videoId) {
