@@ -5,6 +5,7 @@ import { LearningView } from '../views/LearningView'
 import { ResourceHubView } from '../views/ResourceHubView'
 import { ReviewView } from '../views/ReviewView'
 import { SettingsView } from '../views/SettingsView'
+import { ManualView } from '../views/ManualView'
 
 /**
  * アプリのルート定義。
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsView />,
+      },
+      {
+        path: 'manual',
+        element: <ManualView />,
       },
     ],
   },

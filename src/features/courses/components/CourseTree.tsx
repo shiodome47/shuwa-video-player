@@ -16,12 +16,13 @@ import {
   Circle,
   GraduationCap,
   GripVertical,
+  HelpCircle,
   Pencil,
   Plus,
   Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
-import { useMatch, useNavigate } from 'react-router-dom'
+import { useMatch, useNavigate, Link } from 'react-router-dom'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { useUIStore } from '../../../stores/ui'
 import { cn } from '../../../utils/cn'
@@ -109,6 +110,14 @@ export function CourseTree() {
           <Plus className="h-3.5 w-3.5" />
           コースを追加
         </button>
+
+        <Link
+          to="/manual"
+          className="mt-2 flex w-full items-center gap-1.5 rounded-lg border border-accent-700/50 bg-accent-950/30 px-3 py-2 text-[11px] font-medium text-accent-400 transition-colors hover:bg-accent-900/40 hover:text-accent-300"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+          取扱説明書
+        </Link>
       </div>
 
       {courses.length === 0 && <CourseTreeEmpty onAdd={() => setAddCourseOpen(true)} />}
