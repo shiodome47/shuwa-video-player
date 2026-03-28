@@ -277,6 +277,7 @@ export function NativePlayer({ lessonId, source, onEnded, overlay = false }: Nat
         onSetA={handleSetA}
         onSetB={handleSetB}
         onClear={clearAB}
+        isTheater={isTheater}
       />
       <PlayerControls
         isPlaying={isPlaying}

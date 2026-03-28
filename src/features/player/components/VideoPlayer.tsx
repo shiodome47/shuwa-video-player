@@ -81,7 +81,7 @@ export function VideoPlayer({ lessonId, sources, activeIndex, onSelectIndex, ove
           <span>次の動画に切り替わりました。再生ボタンを押してください。</span>
           <button
             onClick={() => setShowBanner(false)}
-            className="shrink-0 text-neutral-600 hover:text-neutral-400"
+            className="shrink-0 text-neutral-400 hover:text-neutral-200"
             aria-label="閉じる"
           >
             ✕
@@ -114,13 +114,13 @@ function PlaylistNav({
         onClick={() => onSelectIndex(activeIndex - 1)}
         disabled={!canPrev}
         title="前の動画"
-        className={cn(btnBase, canPrev ? 'text-neutral-400 hover:text-neutral-100' : 'cursor-not-allowed text-neutral-700')}
+        className={cn(btnBase, canPrev ? 'text-neutral-300 hover:text-neutral-100' : 'cursor-not-allowed text-neutral-600')}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
 
       {/* カウンター */}
-      <span className="min-w-[2.5rem] text-center text-xs tabular-nums text-neutral-500">
+      <span className="min-w-[2.5rem] text-center text-xs tabular-nums text-neutral-400">
         {activeIndex + 1} / {sources.length}
       </span>
 
@@ -129,7 +129,7 @@ function PlaylistNav({
         onClick={() => onSelectIndex(activeIndex + 1)}
         disabled={!canNext}
         title="次の動画"
-        className={cn(btnBase, canNext ? 'text-neutral-400 hover:text-neutral-100' : 'cursor-not-allowed text-neutral-700')}
+        className={cn(btnBase, canNext ? 'text-neutral-300 hover:text-neutral-100' : 'cursor-not-allowed text-neutral-600')}
       >
         <ChevronRight className="h-4 w-4" />
       </button>
@@ -145,7 +145,7 @@ function PlaylistNav({
               'flex-shrink-0 max-w-[140px] truncate rounded px-1.5 py-0.5 text-[11px] transition-colors',
               i === activeIndex
                 ? 'bg-accent-900/40 text-accent-400'
-                : 'text-neutral-600 hover:text-neutral-300',
+                : 'text-neutral-400 hover:text-neutral-200',
             )}
           >
             {s.displayName ?? s.src.split('/').pop() ?? `動画${i + 1}`}
@@ -167,8 +167,8 @@ function NoSourceState({ lessonId }: { lessonId: string }) {
         className="flex w-full flex-col items-center justify-center gap-3 bg-black"
         style={{ aspectRatio: '16/9' }}
       >
-        <Film className="h-12 w-12 text-neutral-800" />
-        <p className="text-sm text-neutral-500">動画が登録されていません</p>
+        <Film className="h-12 w-12 text-neutral-600" />
+        <p className="text-sm text-neutral-400">動画が登録されていません</p>
         <button
           onClick={() => setDialogOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-200 transition-colors hover:bg-neutral-700"
@@ -176,7 +176,7 @@ function NoSourceState({ lessonId }: { lessonId: string }) {
           <Plus className="h-4 w-4" />
           動画を追加
         </button>
-        <p className="text-[11px] text-neutral-600">
+        <p className="text-[11px] text-neutral-500">
           ローカル / YouTube / 外部URL を追加できます
         </p>
       </div>

@@ -23,7 +23,7 @@ export function ShortcutHelp() {
       <button
         onClick={() => setOpen((v) => !v)}
         title="キーボードショートカット"
-        className="rounded p-1 text-neutral-600 transition-colors hover:text-neutral-300"
+        className="rounded p-1 text-neutral-400 transition-colors hover:text-neutral-200"
       >
         <Keyboard className="h-3.5 w-3.5" />
       </button>
@@ -34,12 +34,12 @@ export function ShortcutHelp() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute bottom-8 right-0 z-50 w-64 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-xl">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                 ショートカット
               </span>
               <button
                 onClick={() => setOpen(false)}
-                className="rounded p-0.5 text-neutral-600 hover:text-neutral-300"
+                className="rounded p-0.5 text-neutral-400 hover:text-neutral-200"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -51,12 +51,12 @@ export function ShortcutHelp() {
                     <td className="py-0.5 pr-3 font-mono text-[11px] text-accent-400 whitespace-nowrap">
                       {key}
                     </td>
-                    <td className="py-0.5 text-[11px] text-neutral-400">{desc}</td>
+                    <td className="py-0.5 text-[11px] text-neutral-300">{desc}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-[10px] text-neutral-700">
+            <p className="mt-2 text-[10px] text-neutral-500">
               入力欄にフォーカス中は無効
             </p>
           </div>

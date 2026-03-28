@@ -171,7 +171,7 @@ export function LocalPlayer({ lessonId, source, onEnded, overlay = false }: Loca
         className="flex w-full items-center justify-center bg-black"
         style={{ aspectRatio: '16/9' }}
       >
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
       </div>
     )
   }
@@ -249,7 +249,7 @@ const actionBtnClass =
   'flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:bg-neutral-700'
 
 const secondaryBtnClass =
-  'rounded-lg px-3 py-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-300'
+  'rounded-lg px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-200'
 
 // ── 状態画面の共通レイアウト ─────────────────────────────────────
 
@@ -269,9 +269,9 @@ function LocalStateScreen({
       className="flex w-full flex-col items-center justify-center gap-3 bg-black"
       style={{ aspectRatio: '16/9' }}
     >
-      <div className="text-neutral-600">{icon}</div>
-      <p className="text-sm font-medium text-neutral-300">{title}</p>
-      <p className="max-w-xs text-center text-xs leading-relaxed text-neutral-600">
+      <div className="text-neutral-400">{icon}</div>
+      <p className="text-sm font-medium text-neutral-200">{title}</p>
+      <p className="max-w-xs text-center text-xs leading-relaxed text-neutral-400">
         {description}
       </p>
       <div className="mt-1 flex items-center gap-2">{action}</div>

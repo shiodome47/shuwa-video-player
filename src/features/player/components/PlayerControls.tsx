@@ -33,6 +33,8 @@ function formatTime(s: number): string {
 /**
  * 動画コントロールバー。
  * [◀5s] [▶/⏸] [10s▶]  時刻      速度  🔊────
+ *
+ * シアターモード（黒グラデーション上）では全要素を白系に引き上げる。
  */
 export function PlayerControls({
   isPlaying,
@@ -49,7 +51,13 @@ export function PlayerControls({
   onTheaterToggle,
   isTheater = false,
 }: PlayerControlsProps) {
-  const btnBase = 'rounded p-1 text-neutral-400 transition-colors hover:text-neutral-100'
+  // シアター: 白ベース / 通常: neutral-300 ベース
+  const btnBase = cn(
+    'rounded p-1 transition-colors',
+    isTheater
+      ? 'text-white/80 hover:text-white'
+      : 'text-neutral-300 hover:text-neutral-100',
+  )
 
   return (
     <div className="flex items-center gap-2 px-3 py-2">
@@ -66,8 +74,10 @@ export function PlayerControls({
         className={cn(
           'rounded-full p-1.5 transition-colors',
           isBuffering
-            ? 'cursor-wait text-neutral-600'
-            : 'text-neutral-100 hover:bg-neutral-700',
+            ? 'cursor-wait text-neutral-500'
+            : isTheater
+              ? 'text-white hover:bg-white/20'
+              : 'text-neutral-100 hover:bg-neutral-700',
         )}
       >
         {isPlaying ? (
@@ -83,9 +93,12 @@ export function PlayerControls({
       </button>
 
       {/* 時刻表示 */}
-      <span className="tabular-nums text-xs text-neutral-500">
+      <span className={cn(
+        'tabular-nums text-xs',
+        isTheater ? 'text-white/80' : 'text-neutral-300',
+      )}>
         {formatTime(currentTime)}
-        <span className="mx-1 text-neutral-700">/</span>
+        <span className={cn('mx-1', isTheater ? 'text-white/50' : 'text-neutral-500')}>/</span>
         {formatTime(duration)}
       </span>
 
@@ -97,7 +110,12 @@ export function PlayerControls({
         value={playbackRate}
         onChange={(e) => onSpeedChange(Number(e.target.value))}
         title="再生速度"
-        className="cursor-pointer appearance-none border-none bg-transparent py-0.5 text-xs text-neutral-400 outline-none hover:text-neutral-200"
+        className={cn(
+          'cursor-pointer appearance-none border-none bg-transparent py-0.5 text-xs outline-none',
+          isTheater
+            ? 'text-white/80 hover:text-white'
+            : 'text-neutral-300 hover:text-neutral-100',
+        )}
       >
         {SPEEDS.map((s) => (
           <option key={s} value={s} className="bg-neutral-900 text-neutral-200">
