@@ -255,7 +255,7 @@ export function ManualView() {
             </FaqItem>
 
             {/* ── FAQ 4 ── */}
-            <FaqItem question="ホーム画面に追加できますか？">
+            <FaqItem question="スマホのホーム画面に追加できますか？">
               <SubHeading>Android（Chrome）</SubHeading>
               <ol className="list-decimal space-y-1 pl-5">
                 <li>Chrome で開いた状態で右上メニュー「<strong>⋮</strong>」をタップ</li>
