@@ -199,6 +199,8 @@ function FavoriteResourcesSection() {
       </div>
       <Link
         to="/resources"
+        target="_blank"
+        rel="noopener noreferrer"
         className="mt-1.5 block text-right text-[11px] text-neutral-600 hover:text-neutral-400"
       >
         すべてのリソース →

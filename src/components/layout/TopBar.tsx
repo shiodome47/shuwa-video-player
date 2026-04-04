@@ -60,6 +60,8 @@ export function TopBar() {
 
         <NavLink
           to="/resources"
+          target="_blank"
+          rel="noopener noreferrer"
           className={({ isActive }) => cn(tabBase, isActive ? tabActive : tabInactive)}
         >
           リソース
